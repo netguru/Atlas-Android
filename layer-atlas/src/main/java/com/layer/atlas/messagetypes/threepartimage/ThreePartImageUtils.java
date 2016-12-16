@@ -6,9 +6,13 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.ExifInterface;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 
 import com.layer.atlas.util.Log;
+import com.layer.atlas.util.StorageAccessUtilities;
 import com.layer.atlas.util.Util;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Message;
@@ -18,6 +22,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Locale;
 
 public class ThreePartImageUtils {
@@ -49,80 +54,91 @@ public class ThreePartImageUtils {
         return message.getMessageParts().get(PART_INDEX_FULL);
     }
 
+    public static Message newThreePartImageMessage(Context context, LayerClient layerClient, File file) throws IOException {
+        ExifInterface exifData = getExifData(file);
+        return newThreePartImageMessage(context, layerClient, exifData, file);
+    }
+
+
     public static Message newThreePartImageMessage(Context context, LayerClient layerClient, Uri imageUri) throws IOException {
-        Cursor cursor = context.getContentResolver().query(imageUri, new String[]{MediaStore.MediaColumns.DATA}, null, null, null);
-        try {
-            if (cursor == null || !cursor.moveToFirst()) return null;
-            return newThreePartImageMessage(context, layerClient, new File(cursor.getString(0)));
-        } finally {
-            if (cursor != null) cursor.close();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && StorageAccessUtilities.isVirtualFile(context, imageUri)) {
+            long fileSize = StorageAccessUtilities.getFileSizeForVirtualFile(context, imageUri, "image/*");
+            InputStream inputStream = StorageAccessUtilities.getInputStreamForVirtualFile(context, imageUri, "image/*");
+            ExifInterface exifData = getExifData(inputStream);
+            return newThreePartImageMessage(context, layerClient, exifData, inputStream, fileSize);
+        } else {
+            Cursor cursor = context.getContentResolver().query(imageUri, new String[]{MediaStore.MediaColumns.DATA}, null, null, null);
+            try {
+                if (cursor == null || !cursor.moveToFirst()) return null;
+                File imageFile = new File(cursor.getString(0));
+                ExifInterface exifData = getExifData(imageFile);
+                return newThreePartImageMessage(context, layerClient, exifData, imageFile);
+            } finally {
+                if (cursor != null) cursor.close();
+            }
         }
     }
 
-    public static Message newThreePartImageMessage(Context context, LayerClient layerClient, File imageFile) throws IOException {
+    public static ExifInterface getExifData(File imageFile) throws IOException {
         if (imageFile == null) throw new IllegalArgumentException("Null image file");
         if (!imageFile.exists()) throw new IllegalArgumentException("Image file does not exist");
         if (!imageFile.canRead()) throw new IllegalArgumentException("Cannot read image file");
         if (imageFile.length() <= 0) throw new IllegalArgumentException("Image file is empty");
 
-        // Try parsing Exif data.
-        int orientation = ORIENTATION_0;
-        int exifOrientation = ExifInterface.ORIENTATION_UNDEFINED;
         try {
             ExifInterface exifInterface = new ExifInterface(imageFile.getAbsolutePath());
-            exifOrientation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
-            if (Log.isLoggable(Log.VERBOSE)) {
-                Log.v("Found Exif orientation: " + exifOrientation);
-            }
-            switch (exifOrientation) {
-                case ExifInterface.ORIENTATION_UNDEFINED:
-                case ExifInterface.ORIENTATION_NORMAL:
-                case ExifInterface.ORIENTATION_FLIP_HORIZONTAL:
-                    orientation = ORIENTATION_0;
-                    break;
-                case ExifInterface.ORIENTATION_ROTATE_180:
-                case ExifInterface.ORIENTATION_FLIP_VERTICAL:
-                    orientation = ORIENTATION_180;
-                    break;
-                case ExifInterface.ORIENTATION_TRANSPOSE:
-                case ExifInterface.ORIENTATION_ROTATE_90:
-                    orientation = ORIENTATION_270;
-                    break;
-                case ExifInterface.ORIENTATION_TRANSVERSE:
-                case ExifInterface.ORIENTATION_ROTATE_270:
-                    orientation = ORIENTATION_90;
-                    break;
-            }
+            return exifInterface;
         } catch (IOException e) {
             if (Log.isLoggable(Log.ERROR)) {
                 Log.e(e.getMessage(), e);
             }
+            throw e;
         }
-
-        return newThreePartImageMessage(context, layerClient, exifOrientation, orientation, imageFile);
     }
 
-    /**
-     * Creates a new ThreePartImage Message.  The full image is attached untouched, while the
-     * preview is created from the full image by loading, resizing, and compressing.
-     *
-     * @param client
-     * @param file   Image file
-     * @return
-     */
-    private static Message newThreePartImageMessage(Context context, LayerClient client, int exifOrientation, int orientation, File file) throws IOException {
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    public static ExifInterface getExifData(@NonNull InputStream inputStream) throws IOException {
+        try {
+            ExifInterface exifInterface = new ExifInterface(inputStream);
+            return exifInterface;
+        } catch (IOException e) {
+            if (Log.isLoggable(Log.ERROR)) {
+                Log.e(e.getMessage(), e);
+            }
+            throw e;
+        }
+    }
+
+    public static Message newThreePartImageMessage(Context context, LayerClient layerClient,
+                                                   ExifInterface exifInterface, File imageFile) throws IOException {
+        if (layerClient == null) throw new IllegalArgumentException("Null LayerClient");
+        if (imageFile == null) throw new IllegalArgumentException("Null image file");
+        if (!imageFile.exists()) throw new IllegalArgumentException("No image file");
+        if (!imageFile.canRead()) throw new IllegalArgumentException("Cannot read image file");
+        int[] orientation = getOrientation(exifInterface);
+
+        return newThreePartImageMessage(context, layerClient, orientation[0], orientation[1], new FileInputStream(imageFile), imageFile.length());
+    }
+
+    public static Message newThreePartImageMessage(Context context, LayerClient layerClient,
+                                                   ExifInterface exifInterface,
+                                                   InputStream inputStream, long fileSize) throws IOException {
+        int[] orientation = getOrientation(exifInterface);
+
+        return newThreePartImageMessage(context, layerClient, orientation[0], orientation[1], inputStream, fileSize);
+    }
+
+    private static Message newThreePartImageMessage(Context context, LayerClient client, int exifOrientation, int orientation, @NonNull InputStream inputStream, long fileSize) throws IOException {
         if (client == null) throw new IllegalArgumentException("Null LayerClient");
-        if (file == null) throw new IllegalArgumentException("Null image file");
-        if (!file.exists()) throw new IllegalArgumentException("No image file");
-        if (!file.canRead()) throw new IllegalArgumentException("Cannot read image file");
+        if (inputStream == null) throw new IllegalArgumentException("Null input stream");
 
         BitmapFactory.Options justBounds = new BitmapFactory.Options();
         justBounds.inJustDecodeBounds = true;
-        BitmapFactory.decodeFile(file.getAbsolutePath(), justBounds);
+        BitmapFactory.decodeStream(inputStream, null, justBounds);
 
         int fullWidth = justBounds.outWidth;
         int fullHeight = justBounds.outHeight;
-        MessagePart full = client.newMessagePart("image/jpeg", new FileInputStream(file), file.length());
+        MessagePart full = client.newMessagePart("image/jpeg", inputStream, fileSize);
 
         boolean isSwap = orientation == ORIENTATION_270 || orientation == ORIENTATION_90;
         String intoString = "{\"orientation\":" + orientation + ", \"width\":" + (!isSwap ? fullWidth : fullHeight) + ", \"height\":" + (!isSwap ? fullHeight : fullWidth) + "}";
@@ -133,7 +149,7 @@ public class ThreePartImageUtils {
 
         MessagePart preview;
         if (Log.isLoggable(Log.VERBOSE)) {
-            Log.v("Creating Preview from '" + file.getAbsolutePath() + "'");
+            Log.v("Creating Preview from input stream");
         }
 
         // Determine preview size
@@ -159,7 +175,7 @@ public class ThreePartImageUtils {
         }
 
         // Create preview
-        Bitmap sampledBitmap = BitmapFactory.decodeFile(file.getAbsolutePath(), previewOptions);
+        Bitmap sampledBitmap = BitmapFactory.decodeStream(inputStream, null, previewOptions);
         Bitmap previewBitmap = Bitmap.createScaledBitmap(sampledBitmap, previewDim[0], previewDim[1], true);
         File temp = new File(context.getCacheDir(), ThreePartImageUtils.class.getSimpleName() + "." + System.nanoTime() + ".jpg");
         FileOutputStream previewStream = new FileOutputStream(temp);
@@ -189,5 +205,37 @@ public class ThreePartImageUtils {
         parts[PART_INDEX_PREVIEW] = preview;
         parts[PART_INDEX_INFO] = info;
         return client.newMessage(parts);
+    }
+
+    private static int[] getOrientation(ExifInterface exifInterface) {
+        // Try parsing Exif data.
+        int orientation = ORIENTATION_0;
+        int exifOrientation = ExifInterface.ORIENTATION_UNDEFINED;
+
+        exifOrientation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
+        if (Log.isLoggable(Log.VERBOSE)) {
+            Log.v("Found Exif orientation: " + exifOrientation);
+        }
+        switch (exifOrientation) {
+            case ExifInterface.ORIENTATION_UNDEFINED:
+            case ExifInterface.ORIENTATION_NORMAL:
+            case ExifInterface.ORIENTATION_FLIP_HORIZONTAL:
+                orientation = ORIENTATION_0;
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_180:
+            case ExifInterface.ORIENTATION_FLIP_VERTICAL:
+                orientation = ORIENTATION_180;
+                break;
+            case ExifInterface.ORIENTATION_TRANSPOSE:
+            case ExifInterface.ORIENTATION_ROTATE_90:
+                orientation = ORIENTATION_270;
+                break;
+            case ExifInterface.ORIENTATION_TRANSVERSE:
+            case ExifInterface.ORIENTATION_ROTATE_270:
+                orientation = ORIENTATION_90;
+                break;
+        }
+        int[] result = new int[]{exifOrientation, orientation};
+        return result;
     }
 }
