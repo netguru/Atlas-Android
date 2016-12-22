@@ -5,6 +5,7 @@
 ### Features
   * Added convenience methods for checking and requesting permissions in `AttachmentSender`
   * Fix crash while using the Camera to take a photo on API Level 24 (Android 7.0 - Nougat)
+  * Fix crash while using the Gallery to upload a photo on API Level 24 (Android 7.0 - Nougat)
 
 ## 0.3.5
 
