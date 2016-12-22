@@ -41,6 +41,7 @@ public class ThreePartImageUtils {
     public static final int PREVIEW_COMPRESSION_QUALITY = 75;
     public static final int PREVIEW_MAX_WIDTH = 512;
     public static final int PREVIEW_MAX_HEIGHT = 512;
+    public static final String MIME_TYPE_FILTER_IMAGE = "image/*";
 
     public static MessagePart getInfoPart(Message message) {
         return message.getMessageParts().get(PART_INDEX_INFO);
@@ -54,25 +55,18 @@ public class ThreePartImageUtils {
         return message.getMessageParts().get(PART_INDEX_FULL);
     }
 
-    public static Message newThreePartImageMessage(Context context, LayerClient layerClient, File file) throws IOException {
-        ExifInterface exifData = getExifData(file);
-        return newThreePartImageMessage(context, layerClient, exifData, file);
-    }
-
-
     public static Message newThreePartImageMessage(Context context, LayerClient layerClient, Uri imageUri) throws IOException {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && StorageAccessUtilities.isVirtualFile(context, imageUri)) {
-            long fileSize = StorageAccessUtilities.getFileSizeForVirtualFile(context, imageUri, "image/*");
-            InputStream inputStream = StorageAccessUtilities.getInputStreamForVirtualFile(context, imageUri, "image/*");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            long fileSize = StorageAccessUtilities.getFileSizeForVirtualFile(context, imageUri, MIME_TYPE_FILTER_IMAGE);
+            InputStream inputStream = StorageAccessUtilities.getInputStreamFromUri(context, imageUri, MIME_TYPE_FILTER_IMAGE);
             ExifInterface exifData = getExifData(inputStream);
-            return newThreePartImageMessage(context, layerClient, exifData, inputStream, fileSize);
+            return newThreePartImageMessage(context, layerClient, exifData, imageUri, fileSize);
         } else {
             Cursor cursor = context.getContentResolver().query(imageUri, new String[]{MediaStore.MediaColumns.DATA}, null, null, null);
             try {
                 if (cursor == null || !cursor.moveToFirst()) return null;
                 File imageFile = new File(cursor.getString(0));
-                ExifInterface exifData = getExifData(imageFile);
-                return newThreePartImageMessage(context, layerClient, exifData, imageFile);
+                return newThreePartImageMessage(context, layerClient, imageFile);
             } finally {
                 if (cursor != null) cursor.close();
             }
@@ -109,27 +103,103 @@ public class ThreePartImageUtils {
         }
     }
 
-    public static Message newThreePartImageMessage(Context context, LayerClient layerClient,
-                                                   ExifInterface exifInterface, File imageFile) throws IOException {
-        if (layerClient == null) throw new IllegalArgumentException("Null LayerClient");
-        if (imageFile == null) throw new IllegalArgumentException("Null image file");
-        if (!imageFile.exists()) throw new IllegalArgumentException("No image file");
-        if (!imageFile.canRead()) throw new IllegalArgumentException("Cannot read image file");
-        int[] orientation = getOrientation(exifInterface);
-
-        return newThreePartImageMessage(context, layerClient, orientation[0], orientation[1], new FileInputStream(imageFile), imageFile.length());
-    }
-
-    public static Message newThreePartImageMessage(Context context, LayerClient layerClient,
-                                                   ExifInterface exifInterface,
-                                                   InputStream inputStream, long fileSize) throws IOException {
-        int[] orientation = getOrientation(exifInterface);
-
-        return newThreePartImageMessage(context, layerClient, orientation[0], orientation[1], inputStream, fileSize);
-    }
-
-    private static Message newThreePartImageMessage(Context context, LayerClient client, int exifOrientation, int orientation, @NonNull InputStream inputStream, long fileSize) throws IOException {
+    /**
+     * Creates a new ThreePartImage Message.  The full image is attached untouched, while the
+     * preview is created from the full image by loading, resizing, and compressing.
+     *
+     * @param client
+     * @param file   Image file
+     * @return
+     */
+    public static Message newThreePartImageMessage(Context context, LayerClient client, File file) throws IOException {
         if (client == null) throw new IllegalArgumentException("Null LayerClient");
+        if (file == null) throw new IllegalArgumentException("Null image file");
+        if (!file.exists()) throw new IllegalArgumentException("No image file");
+        if (!file.canRead()) throw new IllegalArgumentException("Cannot read image file");
+
+        BitmapFactory.Options justBounds = new BitmapFactory.Options();
+        justBounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(file.getAbsolutePath(), justBounds);
+
+        int fullWidth = justBounds.outWidth;
+        int fullHeight = justBounds.outHeight;
+        MessagePart full = client.newMessagePart("image/jpeg", new FileInputStream(file), file.length());
+
+        ExifInterface exifData = getExifData(file);
+        int[] orientationData = getOrientation(exifData);
+        int orientation = orientationData[0];
+        int exifOrientation = orientationData[1];
+
+        boolean isSwap = orientation == ORIENTATION_270 || orientation == ORIENTATION_90;
+        String intoString = "{\"orientation\":" + orientation + ", \"width\":" + (!isSwap ? fullWidth : fullHeight) + ", \"height\":" + (!isSwap ? fullHeight : fullWidth) + "}";
+        MessagePart info = client.newMessagePart(MIME_TYPE_INFO, intoString.getBytes());
+        if (Log.isLoggable(Log.VERBOSE)) {
+            Log.v("Creating image info: " + intoString);
+        }
+
+        MessagePart preview;
+        if (Log.isLoggable(Log.VERBOSE)) {
+            Log.v("Creating Preview from '" + file.getAbsolutePath() + "'");
+        }
+
+        // Determine preview size
+        int[] previewDim = Util.scaleDownInside(fullWidth, fullHeight, PREVIEW_MAX_WIDTH, PREVIEW_MAX_HEIGHT);
+        if (Log.isLoggable(Log.VERBOSE)) {
+            Log.v("Preview size: " + previewDim[0] + "x" + previewDim[1]);
+        }
+
+        // Determine sample size for preview
+        int sampleSize = 1;
+        int sampleWidth = fullWidth;
+        int sampleHeight = fullHeight;
+        while (sampleWidth > previewDim[0] && sampleHeight > previewDim[1]) {
+            sampleWidth >>= 1;
+            sampleHeight >>= 1;
+            sampleSize <<= 1;
+        }
+        if (sampleSize != 1) sampleSize >>= 1; // Back off 1 for scale-down instead of scale-up
+        BitmapFactory.Options previewOptions = new BitmapFactory.Options();
+        previewOptions.inSampleSize = sampleSize;
+        if (Log.isLoggable(Log.VERBOSE)) {
+            Log.v("Preview sampled size: " + (sampleWidth << 1) + "x" + (sampleHeight << 1));
+        }
+
+        // Create preview
+        Bitmap sampledBitmap = BitmapFactory.decodeFile(file.getAbsolutePath(), previewOptions);
+        Bitmap previewBitmap = Bitmap.createScaledBitmap(sampledBitmap, previewDim[0], previewDim[1], true);
+        File temp = new File(context.getCacheDir(), ThreePartImageUtils.class.getSimpleName() + "." + System.nanoTime() + ".jpg");
+        FileOutputStream previewStream = new FileOutputStream(temp);
+        if (Log.isLoggable(Log.VERBOSE)) {
+            Log.v("Compressing preview to '" + temp.getAbsolutePath() + "'");
+        }
+        previewBitmap.compress(Bitmap.CompressFormat.JPEG, PREVIEW_COMPRESSION_QUALITY, previewStream);
+        sampledBitmap.recycle();
+        previewBitmap.recycle();
+        previewStream.close();
+
+        // Preserve exif orientation
+        ExifInterface preserver = new ExifInterface(temp.getAbsolutePath());
+        preserver.setAttribute(ExifInterface.TAG_ORIENTATION, Integer.toString(exifOrientation));
+        preserver.saveAttributes();
+        if (Log.isLoggable(Log.VERBOSE)) {
+            Log.v("Exif orientation preserved in preview");
+        }
+
+        preview = client.newMessagePart(MIME_TYPE_PREVIEW, new FileInputStream(temp), temp.length());
+        if (Log.isLoggable(Log.VERBOSE)) {
+            Log.v(String.format(Locale.US, "Full image bytes: %d, preview bytes: %d, info bytes: %d", full.getSize(), preview.getSize(), info.getSize()));
+        }
+
+        MessagePart[] parts = new MessagePart[3];
+        parts[PART_INDEX_FULL] = full;
+        parts[PART_INDEX_PREVIEW] = preview;
+        parts[PART_INDEX_INFO] = info;
+        return client.newMessage(parts);
+    }
+
+    private static Message newThreePartImageMessage(Context context, LayerClient client, ExifInterface exifData, @NonNull Uri uri, long fileSize) throws IOException {
+        if (client == null) throw new IllegalArgumentException("Null LayerClient");
+        InputStream inputStream = context.getContentResolver().openInputStream(uri);
         if (inputStream == null) throw new IllegalArgumentException("Null input stream");
 
         BitmapFactory.Options justBounds = new BitmapFactory.Options();
@@ -138,7 +208,12 @@ public class ThreePartImageUtils {
 
         int fullWidth = justBounds.outWidth;
         int fullHeight = justBounds.outHeight;
-        MessagePart full = client.newMessagePart("image/jpeg", inputStream, fileSize);
+        InputStream fullInputStream = StorageAccessUtilities.getInputStreamFromUri(context, uri, MIME_TYPE_FILTER_IMAGE);
+        MessagePart full = client.newMessagePart("image/jpeg", fullInputStream, fileSize);
+
+        int[] orientationData = getOrientation(exifData);
+        int orientation = orientationData[0];
+        int exifOrientation = orientationData[1];
 
         boolean isSwap = orientation == ORIENTATION_270 || orientation == ORIENTATION_90;
         String intoString = "{\"orientation\":" + orientation + ", \"width\":" + (!isSwap ? fullWidth : fullHeight) + ", \"height\":" + (!isSwap ? fullHeight : fullWidth) + "}";
@@ -175,7 +250,8 @@ public class ThreePartImageUtils {
         }
 
         // Create preview
-        Bitmap sampledBitmap = BitmapFactory.decodeStream(inputStream, null, previewOptions);
+        InputStream previewInputStream = StorageAccessUtilities.getInputStreamFromUri(context, uri, MIME_TYPE_FILTER_IMAGE);
+        Bitmap sampledBitmap = BitmapFactory.decodeStream(previewInputStream, null, previewOptions);
         Bitmap previewBitmap = Bitmap.createScaledBitmap(sampledBitmap, previewDim[0], previewDim[1], true);
         File temp = new File(context.getCacheDir(), ThreePartImageUtils.class.getSimpleName() + "." + System.nanoTime() + ".jpg");
         FileOutputStream previewStream = new FileOutputStream(temp);
