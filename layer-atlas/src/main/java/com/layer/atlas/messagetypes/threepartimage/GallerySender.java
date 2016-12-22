@@ -72,11 +72,7 @@ public class GallerySender extends AttachmentSender {
         if (!hasPermissions(activity, PERMISSION_READ)) {
             if (Log.isLoggable(Log.VERBOSE)) Log.v("Requesting permissions");
             requestPermissions(activity, PERMISSION_REQUEST_CODE, PERMISSION_READ);
-<<<<<<< HEAD
         }else {
-=======
-        } else {
->>>>>>> 751fde0... Using file content provider for CameraSender + added permissions convenience methods
             if (Log.isLoggable(Log.VERBOSE)) Log.v("Sending gallery image");
             startGalleryIntent(activity);
         }
