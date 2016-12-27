@@ -42,6 +42,7 @@ public class ThreePartImageUtils {
     public static final int PREVIEW_MAX_WIDTH = 512;
     public static final int PREVIEW_MAX_HEIGHT = 512;
     public static final String MIME_TYPE_FILTER_IMAGE = "image/*";
+    public static final String MIME_TYPE_IMAGE_JPEG = "image/jpeg";
 
     public static MessagePart getInfoPart(Message message) {
         return message.getMessageParts().get(PART_INDEX_INFO);
@@ -70,7 +71,47 @@ public class ThreePartImageUtils {
         }
     }
 
-    public static ExifInterface getExifData(File imageFile) throws IOException {
+    /**
+     * Creates a new ThreePartImage Message.  The full image is attached untouched, while the
+     * preview is created from the full image by loading, resizing, and compressing.
+     *
+     * @param client
+     * @param file   Image file
+     * @return
+     */
+    public static Message newThreePartImageMessage(Context context, LayerClient client, File file) throws IOException {
+        if (client == null) throw new IllegalArgumentException("Null LayerClient");
+        if (file == null) throw new IllegalArgumentException("Null image file");
+        if (!file.exists()) throw new IllegalArgumentException("No image file");
+        if (!file.canRead()) throw new IllegalArgumentException("Cannot read image file");
+
+        BitmapFactory.Options bounds = getBounds(new FileInputStream(file.getAbsolutePath()));
+        ExifInterface exifData = getExifData(file);
+
+        // Create info message part
+        MessagePart info = buildInfoMessagePart(client, bounds, exifData);
+
+        // Create Preview message part
+        if (Log.isLoggable(Log.VERBOSE)) {
+            Log.v("Creating Preview from '" + file.getAbsolutePath() + "'");
+        }
+        MessagePart preview = buildPreviewMessagePart(context, client, new FileInputStream(file.getAbsolutePath()), bounds, exifData);
+
+        // Create Full message part
+        MessagePart full = client.newMessagePart(MIME_TYPE_IMAGE_JPEG, new FileInputStream(file), file.length());
+        if (Log.isLoggable(Log.VERBOSE)) {
+            Log.v(String.format(Locale.US, "Full image bytes: %d, preview bytes: %d, info bytes: %d", full.getSize(), preview.getSize(), info.getSize()));
+        }
+
+        MessagePart[] parts = new MessagePart[3];
+        parts[PART_INDEX_FULL] = full;
+        parts[PART_INDEX_PREVIEW] = preview;
+        parts[PART_INDEX_INFO] = info;
+        return client.newMessage(parts);
+    }
+
+
+    private static ExifInterface getExifData(File imageFile) throws IOException {
         if (imageFile == null) throw new IllegalArgumentException("Null image file");
         if (!imageFile.exists()) throw new IllegalArgumentException("Image file does not exist");
         if (!imageFile.canRead()) throw new IllegalArgumentException("Cannot read image file");
@@ -88,7 +129,7 @@ public class ThreePartImageUtils {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.N)
-    public static ExifInterface getExifData(@NonNull InputStream inputStream) throws IOException {
+    private static ExifInterface getExifData(@NonNull InputStream inputStream) throws IOException {
         try {
             ExifInterface exifInterface = new ExifInterface(inputStream);
             return exifInterface;
@@ -189,46 +230,6 @@ public class ThreePartImageUtils {
     }
 
 
-    /**
-     * Creates a new ThreePartImage Message.  The full image is attached untouched, while the
-     * preview is created from the full image by loading, resizing, and compressing.
-     *
-     * @param client
-     * @param file   Image file
-     * @return
-     */
-    public static Message newThreePartImageMessage(Context context, LayerClient client, File file) throws IOException {
-        if (client == null) throw new IllegalArgumentException("Null LayerClient");
-        if (file == null) throw new IllegalArgumentException("Null image file");
-        if (!file.exists()) throw new IllegalArgumentException("No image file");
-        if (!file.canRead()) throw new IllegalArgumentException("Cannot read image file");
-
-        BitmapFactory.Options bounds = getBounds(new FileInputStream(file.getAbsolutePath()));
-        ExifInterface exifData = getExifData(file);
-
-        // Create info message part
-        MessagePart info = buildInfoMessagePart(client, bounds, exifData);
-
-        // Create Preview message part
-        if (Log.isLoggable(Log.VERBOSE)) {
-            Log.v("Creating Preview from '" + file.getAbsolutePath() + "'");
-        }
-        MessagePart preview = buildPreviewMessagePart(context, client, new FileInputStream(file.getAbsolutePath()), bounds, exifData);
-
-        // Create Full message part
-        MessagePart full = client.newMessagePart("image/jpeg", new FileInputStream(file), file.length());
-        if (Log.isLoggable(Log.VERBOSE)) {
-            Log.v(String.format(Locale.US, "Full image bytes: %d, preview bytes: %d, info bytes: %d", full.getSize(), preview.getSize(), info.getSize()));
-        }
-
-        MessagePart[] parts = new MessagePart[3];
-        parts[PART_INDEX_FULL] = full;
-        parts[PART_INDEX_PREVIEW] = preview;
-        parts[PART_INDEX_INFO] = info;
-        return client.newMessage(parts);
-    }
-
-
     @RequiresApi(api = Build.VERSION_CODES.N)
     private static Message newThreePartImageMessageFromUri(Context context, LayerClient client, @NonNull Uri uri) throws IOException {
         if (client == null) throw new IllegalArgumentException("Null LayerClient");
@@ -253,7 +254,7 @@ public class ThreePartImageUtils {
         // Create Full message part
         inputStream = context.getContentResolver().openInputStream(uri);
         long fileSize = getFileSizeFromUri(context, uri);
-        MessagePart full = client.newMessagePart("image/jpeg", inputStream, fileSize);
+        MessagePart full = client.newMessagePart(MIME_TYPE_IMAGE_JPEG, inputStream, fileSize);
         if (Log.isLoggable(Log.VERBOSE)) {
             Log.v(String.format(Locale.US, "Full image bytes: %d, preview bytes: %d, info bytes: %d", full.getSize(), preview.getSize(), info.getSize()));
         }
