@@ -2,6 +2,8 @@ package com.layer.atlas.typingindicators;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.support.annotation.Nullable;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +16,9 @@ import android.widget.LinearLayout;
 import com.layer.atlas.AtlasAvatar;
 import com.layer.atlas.AtlasTypingIndicator;
 import com.layer.atlas.R;
+import com.layer.atlas.support.ChatAttendeesProvider;
+import com.layer.atlas.support.Participant;
+import com.layer.atlas.util.Util;
 import com.layer.sdk.listeners.LayerTypingIndicatorListener;
 import com.layer.sdk.messaging.Identity;
 import com.squareup.picasso.Picasso;
@@ -25,6 +30,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.schedulers.Schedulers;
+import rx.subscriptions.CompositeSubscription;
+
 public class AvatarTypingIndicatorFactory implements AtlasTypingIndicator.TypingIndicatorFactory<LinearLayout> {
     private static final String TAG = AvatarTypingIndicatorFactory.class.getSimpleName();
 
@@ -34,9 +45,12 @@ public class AvatarTypingIndicatorFactory implements AtlasTypingIndicator.Typing
     private static final long ANIMATION_OFFSET = ANIMATION_PERIOD / 3;
 
     private final Picasso mPicasso;
+    private final ChatAttendeesProvider chatAttendeesProvider;
+    private final CompositeSubscription compositeSubscription = new CompositeSubscription();
 
-    public AvatarTypingIndicatorFactory(Picasso picasso) {
+    public AvatarTypingIndicatorFactory(Picasso picasso, ChatAttendeesProvider chatAttendeesProvider) {
         mPicasso = picasso;
+        this.chatAttendeesProvider = chatAttendeesProvider;
     }
 
     @Override
@@ -83,48 +97,69 @@ public class AvatarTypingIndicatorFactory implements AtlasTypingIndicator.Typing
     }
 
     @Override
-    public void onBindView(LinearLayout l, Map<Identity, LayerTypingIndicatorListener.TypingIndicator> typingUserIds) {
-        @SuppressWarnings("unchecked")
+    public void onBindView(final LinearLayout l, final Map<Identity, LayerTypingIndicatorListener.TypingIndicator> typingUserIds) {
+        @SuppressWarnings("unchecked") final
         Tag tag = (Tag) l.getTag();
 
-        int avatarSpace = l.getResources().getDimensionPixelSize(R.dimen.atlas_padding_narrow);
-        int avatarDim = l.getResources().getDimensionPixelSize(R.dimen.atlas_message_avatar_item_single);
+        final int avatarSpace = l.getResources().getDimensionPixelSize(R.dimen.atlas_padding_narrow);
+        final int avatarDim = l.getResources().getDimensionPixelSize(R.dimen.atlas_message_avatar_item_single);
 
-        // Iterate over existing typists and remove non-typists
-        List<AtlasAvatar> newlyFinished = new ArrayList<AtlasAvatar>();
-        Set<Identity> newlyActives = new HashSet<>(typingUserIds.keySet());
-        for (AtlasAvatar avatar : tag.mActives) {
-            Identity existingTypist = avatar.getParticipants().iterator().next();
-            if (!typingUserIds.containsKey(existingTypist) || (typingUserIds.get(existingTypist) == LayerTypingIndicatorListener.TypingIndicator.FINISHED)) {
-                // Newly finished
-                newlyFinished.add(avatar);
-            } else {
-                // Existing started or paused
-                avatar.setAlpha(typingUserIds.get(existingTypist) == LayerTypingIndicatorListener.TypingIndicator.STARTED ? 1f : 0.5f);
-                newlyActives.remove(existingTypist);
-            }
-        }
-        for (AtlasAvatar avatar : newlyFinished) {
-            tag.mActives.remove(avatar);
-            tag.mPassives.add(avatar);
-            l.removeView(avatar);
-        }
+        final List<String> participantsIdsList = Util.getIdsFromIdentities(typingUserIds.keySet());
 
-        // Add new typists
-        for (Identity typist : newlyActives) {
-            AtlasAvatar avatar = tag.mPassives.poll();
-            if (avatar == null) {
-                // TODO: allow styling
-                avatar = new AtlasAvatar(l.getContext()).init(mPicasso);
-                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(avatarDim, avatarDim);
-                params.setMargins(0, 0, avatarSpace, 0);
-                avatar.setLayoutParams(params);
-            }
-            avatar.setAlpha(typingUserIds.get(typist) == LayerTypingIndicatorListener.TypingIndicator.STARTED ? 1f : 0.5f);
-            tag.mActives.add(avatar);
-            l.addView(avatar, 0);
-            avatar.setParticipants(typist);
-        }
+        Subscription participantsSingleSubscription = chatAttendeesProvider.getParticipants(participantsIdsList).
+                subscribeOn(Schedulers.io()).
+                observeOn(AndroidSchedulers.mainThread()).
+                subscribe(new Action1<List<Participant>>() {
+                    @Override
+                    public void call(List<Participant> participants) {
+                        // Iterate over existing typists and remove non-typists
+                        List<AtlasAvatar> newlyFinished = new ArrayList<>();
+                        Set<Identity> newlyActives = new HashSet<>(typingUserIds.keySet());
+                        for (AtlasAvatar avatar : tag.mActives) {
+                            String existingTypistKey = avatar.getParticipants().keySet().iterator().next();
+                            Identity existingTypist = findTypist(existingTypistKey, typingUserIds.keySet());
+                            if (existingTypist == null) {
+                                return;
+                            }
+                            if (!typingUserIds.containsKey(existingTypist) || (typingUserIds.get(existingTypist) == LayerTypingIndicatorListener.TypingIndicator.FINISHED)) {
+                                // Newly finished
+                                newlyFinished.add(avatar);
+                            } else {
+                                // Existing started or paused
+                                avatar.setAlpha(typingUserIds.get(existingTypist) == LayerTypingIndicatorListener.TypingIndicator.STARTED ? 1f : 0.5f);
+                                newlyActives.remove(existingTypist);
+                            }
+                        }
+                        for (AtlasAvatar avatar : newlyFinished) {
+                            tag.mActives.remove(avatar);
+                            tag.mPassives.add(avatar);
+                            l.removeView(avatar);
+                        }
+
+                        // Add new typists
+                        for (Identity typist : newlyActives) {
+                            AtlasAvatar avatar = tag.mPassives.poll();
+                            if (avatar == null) {
+                                // TODO: allow styling
+                                avatar = new AtlasAvatar(l.getContext()).init(mPicasso);
+                                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(avatarDim, avatarDim);
+                                params.setMargins(0, 0, avatarSpace, 0);
+                                avatar.setLayoutParams(params);
+                            }
+                            avatar.setAlpha(typingUserIds.get(typist) == LayerTypingIndicatorListener.TypingIndicator.STARTED ? 1f : 0.5f);
+                            tag.mActives.add(avatar);
+                            l.addView(avatar, 0);
+                            Participant participant = findParticipant(typist.getUserId(), participants);
+                            avatar.setParticipant(participant);
+                        }
+                    }
+                }, new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        Log.d(TAG, "Problem with getting participants", throwable);
+                    }
+                });
+        compositeSubscription.add(participantsSingleSubscription);
 
         // Dot animations
         View dot1 = tag.mDots.get(0);
@@ -150,6 +185,33 @@ public class AvatarTypingIndicatorFactory implements AtlasTypingIndicator.Typing
             startAnimation(dot3, ANIMATION_PERIOD, ANIMATION_OFFSET + ANIMATION_OFFSET);
             dot1.setTag(false);
         }
+    }
+
+    /**
+     * Call onDestroy to prevent memory leaks.
+     */
+    public void onDestroy() {
+        compositeSubscription.clear();
+    }
+
+    @Nullable
+    private Participant findParticipant(String typistUserId, List<Participant> participants) {
+        for (Participant participant : participants) {
+            if (participant.getId().equals(typistUserId)) {
+                return participant;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private Identity findTypist(String existingTypistKey, Set<Identity> identities) {
+        for (Identity setIdentity : identities) {
+            if (setIdentity.getUserId().equals(existingTypistKey)) {
+                return setIdentity;
+            }
+        }
+        return null;
     }
 
     /**

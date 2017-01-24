@@ -84,6 +84,7 @@
         <attr name="avatarTextColor" />
         <attr name="avatarTextTypeface" />
         <attr name="avatarTextStyle" />
+        <attr name="backgroundColor" />
     </declare-styleable>
 
     <declare-styleable name="AtlasTypingIndicator"></declare-styleable>
@@ -185,5 +186,6 @@
         <flag name="bold" value="1" />
         <flag name="italic" value="2" />
     </attr>
+    <attr name="backgroundColor" format="color" />
 
 </resources>

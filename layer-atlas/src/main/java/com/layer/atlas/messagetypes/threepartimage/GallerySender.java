@@ -11,8 +11,6 @@ import android.os.Build;
 import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AttachmentSender;
 import com.layer.atlas.util.Log;
-import com.layer.atlas.util.Util;
-import com.layer.sdk.messaging.Identity;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.PushNotificationPayload;
 
@@ -72,7 +70,7 @@ public class GallerySender extends AttachmentSender {
         if (!hasPermissions(activity, PERMISSION_READ)) {
             if (Log.isLoggable(Log.VERBOSE)) Log.v("Requesting permissions");
             requestPermissions(activity, PERMISSION_REQUEST_CODE, PERMISSION_READ);
-        }else {
+        } else {
             if (Log.isLoggable(Log.VERBOSE)) Log.v("Sending gallery image");
             startGalleryIntent(activity);
         }
@@ -92,8 +90,7 @@ public class GallerySender extends AttachmentSender {
             if (Log.isPerfLoggable()) {
                 Log.perf("GallerySender is attempting to send a message");
             }
-            Identity me = getLayerClient().getAuthenticatedUser();
-            String myName = me == null ? "" : Util.getDisplayName(me);
+            String myName = mUserName == null ? "" : mUserName;
             Uri uri = data.getData();
             Message message = ThreePartImageUtils.newThreePartImageMessage(activity, getLayerClient(), uri);
 

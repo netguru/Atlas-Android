@@ -24,32 +24,33 @@ import android.text.TextUtils;
 
 import com.layer.atlas.BuildConfig;
 import com.layer.atlas.R;
-import com.layer.atlas.messagetypes.generic.GenericCellFactory;
-import com.layer.atlas.messagetypes.location.LocationCellFactory;
-import com.layer.atlas.messagetypes.singlepartimage.SinglePartImageCellFactory;
-import com.layer.atlas.messagetypes.text.TextCellFactory;
-import com.layer.atlas.messagetypes.threepartimage.ThreePartImageCellFactory;
+import com.layer.atlas.support.Participant;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.exceptions.LayerException;
 import com.layer.sdk.listeners.LayerAuthenticationListener;
 import com.layer.sdk.listeners.LayerProgressListener;
 import com.layer.sdk.messaging.Conversation;
 import com.layer.sdk.messaging.Identity;
-import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.MessagePart;
 import com.layer.sdk.query.Queryable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Util {
     private static final String METADATA_KEY_CONVERSATION_TITLE = "conversationName";
+    private static final String METADATA_KEY_CONVERSATION_TITLE_LEGACY = "title";
     private static final int TIME_HOURS_24 = 24 * 60 * 60 * 1000;
     private static final SimpleDateFormat DAY_OF_WEEK = new SimpleDateFormat("EEE, LLL dd,", Locale.US);
 
@@ -87,17 +88,89 @@ public class Util {
         return sb.toString().trim();
     }
 
+    public static String getConversationTitle(List<Participant> participants, Conversation conversation) {
+        String metadataTitle = getConversationMetadataTitle(conversation);
+        if (metadataTitle == null || metadataTitle.isEmpty()) {
+            //Try get title for legacy conversation
+            metadataTitle = getConversationMetadataTitleLegacy(conversation);
+        }
+        if (metadataTitle != null) {
+            return metadataTitle.trim();
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (Participant participant : participants) {
+            String initials = conversation.getParticipants().size() > 2 ? getInitialsFromParticipant(participant.getName()) : participant.getName();
+            if (sb.length() > 0) {
+                sb.append(", ");
+            }
+            sb.append(initials);
+        }
+        return sb.toString().trim();
+    }
+
+    public static String getConversationTitle(String authenticatedUserId, List<Participant> participants, Conversation conversation) {
+        String metadataTitle = getConversationMetadataTitle(conversation);
+        if (metadataTitle == null || metadataTitle.isEmpty()) {
+            //Try get title for legacy conversation
+            metadataTitle = getConversationMetadataTitleLegacy(conversation);
+        }
+        if (metadataTitle != null) {
+            return metadataTitle.trim();
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (Participant participant : participants) {
+            if (participant.getId().equals(authenticatedUserId)) {
+                continue;
+            }
+            String initials = conversation.getParticipants().size() > 2 ? getInitialsFromParticipant(participant.getName()) : participant.getName();
+            if (sb.length() > 0) {
+                sb.append(", ");
+            }
+            sb.append(initials);
+        }
+        return sb.toString().trim();
+    }
+
+    public static String getInitialsFromParticipant(String fullName) {
+        if (fullName == null || fullName.isEmpty()) {
+            return "";
+        }
+        if (fullName.contains(" ")) {
+            String[] names = fullName.split(" ");
+            int count = 0;
+            StringBuilder b = new StringBuilder();
+            for (String name : names) {
+                String t = name.trim();
+                if (t.isEmpty()) {
+                    continue;
+                }
+                b.append(("" + t.charAt(0)).toUpperCase());
+                if (++count >= 2) {
+                    break;
+                }
+            }
+            return b.toString();
+        } else {
+            return ("" + fullName.trim().charAt(0)).toUpperCase();
+        }
+    }
+
     public static String getConversationMetadataTitle(Conversation conversation) {
         String metadataTitle = (String) conversation.getMetadata().get(METADATA_KEY_CONVERSATION_TITLE);
+        if (metadataTitle == null) {
+            metadataTitle = (String) conversation.getMetadata().get(METADATA_KEY_CONVERSATION_TITLE_LEGACY);
+        }
         if (metadataTitle != null && !metadataTitle.trim().isEmpty()) return metadataTitle.trim();
         return null;
     }
 
     public static void setConversationMetadataTitle(Conversation conversation, String title) {
         if (title == null || title.trim().isEmpty()) {
-            conversation.removeMetadataAtKeyPath(METADATA_KEY_CONVERSATION_TITLE);
+            conversation.removeMetadataAtKeyPath(METADATA_KEY_CONVERSATION_TITLE_LEGACY);
         } else {
-            conversation.putMetadataAtKeyPath(METADATA_KEY_CONVERSATION_TITLE, title.trim());
+            conversation.putMetadataAtKeyPath(METADATA_KEY_CONVERSATION_TITLE_LEGACY, title.trim());
         }
     }
 
@@ -116,8 +189,24 @@ public class Util {
         }
     }
 
+    public static Map<String, Participant> createParticipantsMap(List<Participant> participants) {
+        Map<String, Participant> participantMap = new HashMap<>(participants.size());
+        for (Participant participant : participants) {
+            participantMap.put(participant.getId(), participant);
+        }
+        return participantMap;
+    }
+
+    public static List<String> getIdsFromIdentities(Collection<Identity> identityHashSet) {
+        List<String> isd = new ArrayList<>(identityHashSet.size());
+        for (Identity identity : identityHashSet) {
+            isd.add(identity.getUserId());
+        }
+        return isd;
+    }
+
     private static String getInitials(String name) {
-        if(TextUtils.isEmpty(name)) return "";
+        if (TextUtils.isEmpty(name)) return "";
         if (name.contains(" ")) {
             String[] nameParts = name.split(" ");
             int count = 0;
@@ -329,6 +418,14 @@ public class Util {
             return;
         }
         layerClient.deauthenticate();
+    }
+
+    private static String getConversationMetadataTitleLegacy(Conversation conversation) {
+        String metadataTitle = (String) conversation.getMetadata().get(METADATA_KEY_CONVERSATION_TITLE_LEGACY);
+        if (metadataTitle != null && !metadataTitle.trim().isEmpty()) {
+            return metadataTitle.trim();
+        }
+        return null;
     }
 
     public interface ContentAvailableCallback {
