@@ -200,7 +200,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     public void onBindViewHolder(final ViewHolder viewHolder, int position) {
         mQueryController.updateBoundPosition(position);
         final Conversation conversation = mQueryController.getItem(position);
-        Message lastMessage = conversation.getLastMessage();
+        final Message lastMessage = conversation.getLastMessage();
         Context context = viewHolder.itemView.getContext();
 
         viewHolder.setConversation(conversation);
@@ -211,6 +211,20 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         mIdentityEventListener.addIdentityPosition(position, participants);
 
         viewHolder.mTitleView.setText("");
+        viewHolder.applyStyle(conversation.getTotalUnreadMessageCount() > 0);
+
+        if (lastMessage == null) {
+            viewHolder.mMessageView.setText(null);
+            viewHolder.mTimeView.setText(null);
+        } else {
+            viewHolder.mMessageView.setText(this.getLastMessageString(context, lastMessage));
+            if (lastMessage.getReceivedAt() == null) {
+                viewHolder.mTimeView.setText(null);
+            } else {
+                viewHolder.mTimeView.setText(Util.formatTime(context, lastMessage.getReceivedAt(), mTimeFormat, mDateFormat));
+            }
+        }
+
         List<String> ids = Util.getIdsFromIdentities(participants);
         Subscription participantsSingleSubscription = chatAttendeesProvider.getParticipants(ids).
                 subscribeOn(Schedulers.io()).
@@ -230,20 +244,6 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
                     }
                 });
         subscriptions.add(participantsSingleSubscription);
-
-        viewHolder.applyStyle(conversation.getTotalUnreadMessageCount() > 0);
-
-        if (lastMessage == null) {
-            viewHolder.mMessageView.setText(null);
-            viewHolder.mTimeView.setText(null);
-        } else {
-            viewHolder.mMessageView.setText(this.getLastMessageString(context, lastMessage));
-            if (lastMessage.getReceivedAt() == null) {
-                viewHolder.mTimeView.setText(null);
-            } else {
-                viewHolder.mTimeView.setText(Util.formatTime(context, lastMessage.getReceivedAt(), mTimeFormat, mDateFormat));
-            }
-        }
     }
 
     @Override
