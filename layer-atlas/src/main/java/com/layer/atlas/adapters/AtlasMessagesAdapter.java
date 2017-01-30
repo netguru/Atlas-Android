@@ -17,6 +17,7 @@ import com.layer.atlas.AtlasAvatar;
 import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
 import com.layer.atlas.messagetypes.MessageStyle;
+import com.layer.atlas.support.Participant;
 import com.layer.atlas.util.IdentityRecyclerViewEventListener;
 import com.layer.atlas.util.Log;
 import com.layer.atlas.util.Util;
@@ -43,14 +44,14 @@ import java.util.Set;
  * it can render, can create new View hierarchies for its Message types, and can render (bind)
  * Message data with its created View hierarchies.  Typically, CellFactories are segregated by
  * MessagePart MIME types (e.g. "text/plain", "image/jpeg", and "application/vnd.geo+json").
- *
+ * <p>
  * Under the hood, the AtlasMessagesAdapter is a RecyclerView.Adapter, which automatically recycles
  * its list items within view-type "buckets".  Each registered CellFactory actually creates two such
  * view-types: one for cells sent by the authenticated user, and another for cells sent by remote
  * actors.  This allows the AtlasMessagesAdapter to efficiently render images sent by the current
  * user aligned on the left, and images sent by others aligned on the right, for example.  In case
  * this sent-by distinction is of value when rendering cells, it provided as the `isMe` argument.
- *
+ * <p>
  * When rendering Messages, the AtlasMessagesAdapter first determines which CellFactory to handle
  * the Message with calling CellFactory.isBindable() on each of its registered CellFactories. The
  * first CellFactory to return `true` is used for that Message.  Then, the adapter checks for
@@ -64,6 +65,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
     private final static int VIEW_TYPE_FOOTER = 0;
 
     protected final LayerClient mLayerClient;
+    private Map<String, Participant> mParticipants;
     protected final Picasso mPicasso;
     private final RecyclerViewController<Message> mQueryController;
     protected final LayoutInflater mLayoutInflater;
@@ -94,8 +96,9 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
 
     private RecyclerView mRecyclerView;
 
-    public AtlasMessagesAdapter(Context context, LayerClient layerClient, Picasso picasso) {
+    public AtlasMessagesAdapter(Context context, LayerClient layerClient, Picasso picasso, Map<String, Participant> participants) {
         mLayerClient = layerClient;
+        mParticipants = participants;
         mPicasso = picasso;
         mLayoutInflater = LayoutInflater.from(context);
         mUiThreadHandler = new Handler(Looper.getMainLooper());
@@ -131,6 +134,10 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
     public AtlasMessagesAdapter setQuery(Query<Message> query) {
         mQueryController.setQuery(query);
         return this;
+    }
+
+    public void setParticipants(Map<String, Participant> participants) {
+        this.mParticipants = participants;
     }
 
     /**
@@ -324,7 +331,9 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
             if (!oneOnOne && (cluster.mClusterWithPrevious == null || cluster.mClusterWithPrevious == ClusterType.NEW_SENDER)) {
                 Identity sender = message.getSender();
                 if (sender != null) {
-                    viewHolder.mUserName.setText(Util.getDisplayName(sender));
+                    Participant participant = mParticipants.get(sender.getUserId());
+                    viewHolder.mUserName.setText(participant != null ? participant.getName() :
+                            viewHolder.itemView.getResources().getString(R.string.atlas_message_item_unknown_user));
                 } else {
                     viewHolder.mUserName.setText(R.string.atlas_message_item_unknown_user);
                 }
@@ -341,9 +350,15 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
                 // Not in one-on-one conversations
                 viewHolder.mAvatar.setVisibility(View.GONE);
             } else if (cluster.mClusterWithNext == null || cluster.mClusterWithNext != ClusterType.LESS_THAN_MINUTE) {
-                // Last message in cluster
-                viewHolder.mAvatar.setVisibility(View.VISIBLE);
-                viewHolder.mAvatar.setParticipants(message.getSender());
+                Identity sender = message.getSender();
+                if (sender != null) {
+                    Participant participant = mParticipants.get(sender.getUserId());
+                    if (participant != null) {
+                        // Last message in cluster
+                        viewHolder.mAvatar.setVisibility(View.VISIBLE);
+                        viewHolder.mAvatar.setParticipant(participant);
+                    }
+                }
 
                 // Add the position to the positions map for Identity updates
                 mIdentityEventListener.addIdentityPosition(position, Collections.singleton(message.getSender()));

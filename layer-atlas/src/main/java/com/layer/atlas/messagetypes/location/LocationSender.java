@@ -19,9 +19,7 @@ import com.google.android.gms.location.LocationServices;
 import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AttachmentSender;
 import com.layer.atlas.util.Log;
-import com.layer.atlas.util.Util;
 import com.layer.sdk.LayerClient;
-import com.layer.sdk.messaging.Identity;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.MessageOptions;
 import com.layer.sdk.messaging.MessagePart;
@@ -32,7 +30,6 @@ import org.json.JSONObject;
 
 import java.lang.ref.WeakReference;
 
-import static android.support.v4.app.ActivityCompat.requestPermissions;
 import static android.support.v4.content.ContextCompat.checkSelfPermission;
 
 /**
@@ -69,10 +66,11 @@ public class LocationSender extends AttachmentSender {
 
         int errorCode = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(activity);
 
-        // If the correct Google Play Services are available, connect and return. 
+        // If the correct Google Play Services are available, connect and return.
+        // Pass application context to avoid memory leaks
         if (errorCode == ConnectionResult.SUCCESS) {
             GoogleApiCallbacks googleApiCallbacks = new GoogleApiCallbacks();
-            sGoogleApiClient = new GoogleApiClient.Builder(activity)
+            sGoogleApiClient = new GoogleApiClient.Builder(activity.getApplicationContext())
                     .addConnectionCallbacks(googleApiCallbacks)
                     .addOnConnectionFailedListener(googleApiCallbacks)
                     .addApi(LocationServices.API)
@@ -168,8 +166,7 @@ public class LocationSender extends AttachmentSender {
             Context context = sender.getContext();
             LayerClient client = sender.getLayerClient();
             try {
-                Identity me = client.getAuthenticatedUser();
-                String myName = me == null ? "" : Util.getDisplayName(me);
+                String myName = sender.mUserName == null ? "" : sender.mUserName;
                 JSONObject o = new JSONObject()
                         .put(LocationCellFactory.KEY_LATITUDE, location.getLatitude())
                         .put(LocationCellFactory.KEY_LONGITUDE, location.getLongitude())

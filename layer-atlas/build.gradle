@@ -11,7 +11,7 @@ group 'com.layer.atlas'
 
 android {
     compileSdkVersion 24
-    buildToolsVersion "24.0.2"
+    buildToolsVersion "24.0.3"
 
     defaultConfig {
         minSdkVersion 14
@@ -42,7 +42,6 @@ ext {
 dependencies {
     // Layer SDK
     compile ('com.layer.sdk:layer-sdk:0.23.6') {
-        exclude group: 'com.google.firebase', module: 'firebase-messaging'
         exclude group: 'com.google.firebase', module: 'firebase-core'
     }
     compile 'org.slf4j:slf4j-nop:1.7.2'
@@ -60,6 +59,10 @@ dependencies {
     compile 'com.android.support:recyclerview-v7:24.2.1'
     compile 'com.android.support:appcompat-v7:24.2.1'
     compile 'com.android.support:design:24.2.1'
+
+    //RxJava
+    compile 'io.reactivex:rxjava:1.2.4'
+    compile 'io.reactivex:rxandroid:1.2.1'
 }
 
 def sdkPom() {
