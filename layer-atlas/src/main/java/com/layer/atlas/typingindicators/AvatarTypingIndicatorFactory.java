@@ -98,8 +98,8 @@ public class AvatarTypingIndicatorFactory implements AtlasTypingIndicator.Typing
 
     @Override
     public void onBindView(final LinearLayout l, final Map<Identity, LayerTypingIndicatorListener.TypingIndicator> typingUserIds) {
-        @SuppressWarnings("unchecked") final
-        Tag tag = (Tag) l.getTag();
+        @SuppressWarnings("unchecked")
+        final Tag tag = (Tag) l.getTag();
 
         final int avatarSpace = l.getResources().getDimensionPixelSize(R.dimen.atlas_padding_narrow);
         final int avatarDim = l.getResources().getDimensionPixelSize(R.dimen.atlas_message_avatar_item_single);
