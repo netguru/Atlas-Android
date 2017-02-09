@@ -1,5 +1,15 @@
 # Atlas Android
 
+## 0.4.1
+
+### Major Changes
+  * Update to Layer Android SDK Version 0.23.7
+  
+### Bug Fixes
+  * Fixed memory leak in `LocationSender`
+  * Fixed crash when a ThreePartImage's preview and image are the same size
+  * Fixed manifest merge issues + crashes caused by workarounds by removing the FileProvider required for CameraSender.
+  
 ## 0.4.0
 
 ### Major Changes

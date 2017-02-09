@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
+import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
@@ -18,11 +19,15 @@ import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.MessagePart;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Calendar;
 import java.util.Locale;
 
 public class ThreePartImageUtils {
@@ -56,18 +61,56 @@ public class ThreePartImageUtils {
         return message.getMessageParts().get(PART_INDEX_FULL);
     }
 
+    /**
+     * The methods by which the ThreePartImageMessage is constructed differs by Android API versions
+     * since the way in which Android handles files from ContentProviders has changed across versions
+     * <p>
+     * Nougat: Makes some changes to how files are handled.  It is no longer allowed to attach a "file://"
+     * URI to an intent any longer.
+     * <p>
+     * Kitkat - Marshmallow : On these versions of Android, the URI you get back may or may not be a "file://"
+     * URI, depending on whether the file in question is on disk or is a remote file. Using a {@link ParcelFileDescriptor}
+     * is the simplest way of handling these variations, without having to parse URIs.
+     * <p>
+     * Jelly Bean to <KitKat: {@link #getPath(Context, Uri) getPath} handles potential edge cases arising from files picked
+     * from the Gallery vs files selected using a third party file explorer
+     */
     public static Message newThreePartImageMessage(Context context, LayerClient layerClient, Uri imageUri) throws IOException {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             return newThreePartImageMessageFromUri(context, layerClient, imageUri);
-        } else {
-            Cursor cursor = context.getContentResolver().query(imageUri, new String[]{MediaStore.MediaColumns.DATA}, null, null, null);
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            ParcelFileDescriptor parcelFileDescriptor = null;
             try {
-                if (cursor == null || !cursor.moveToFirst()) return null;
-                File imageFile = new File(cursor.getString(0));
-                return newThreePartImageMessage(context, layerClient, imageFile);
+                parcelFileDescriptor = context.getContentResolver().openFileDescriptor(imageUri, "r");
+                FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
+                return newThreePartImageMessageFromFileDescriptor(context, layerClient, fileDescriptor);
             } finally {
-                if (cursor != null) cursor.close();
+                if (parcelFileDescriptor != null) {
+                    parcelFileDescriptor.close();
+                }
             }
+        } else {
+            String path = getPath(context, imageUri);
+            File imageFile = new File(path);
+            return ThreePartImageUtils.newThreePartImageMessage(context, layerClient, imageFile);
+        }
+    }
+
+    private static String getPath(Context context, Uri uri) {
+        Cursor cursor = context.getContentResolver().query(uri, new String[]{MediaStore.Images.Media.DATA}, null, null, null);
+
+        try {
+            // Images in the MediaStore
+            if (cursor != null) {
+                int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+                cursor.moveToFirst();
+                return cursor.getString(columnIndex);
+            } else {
+                // Fallback to available path in the Uri
+                return uri.getPath();
+            }
+        } finally {
+            if (cursor != null) cursor.close();
         }
     }
 
@@ -109,7 +152,6 @@ public class ThreePartImageUtils {
         parts[PART_INDEX_INFO] = info;
         return client.newMessage(parts);
     }
-
 
     private static ExifInterface getExifData(File imageFile) throws IOException {
         if (imageFile == null) throw new IllegalArgumentException("Null image file");
@@ -167,7 +209,7 @@ public class ThreePartImageUtils {
         return client.newMessagePart(MIME_TYPE_INFO, intoString.getBytes());
     }
 
-    private static Bitmap getPreviewBitmap (BitmapFactory.Options bounds, InputStream inputStream) {
+    private static Bitmap getPreviewBitmap(BitmapFactory.Options bounds, InputStream inputStream) {
         // Determine preview size
         int[] previewDimensions = Util.scaleDownInside(bounds.outWidth, bounds.outHeight, PREVIEW_MAX_WIDTH, PREVIEW_MAX_HEIGHT);
         if (Log.isLoggable(Log.VERBOSE)) {
@@ -192,13 +234,16 @@ public class ThreePartImageUtils {
             Log.v("Preview sampled size: " + (sampleWidth << 1) + "x" + (sampleHeight << 1));
         }
 
-        // Create preview
+        // Create previewBitmap if sample size and preview size are different
         Bitmap sampledBitmap = BitmapFactory.decodeStream(inputStream, null, previewOptions);
-        Bitmap previewBitmap = Bitmap.createScaledBitmap(sampledBitmap, previewDimensions[0], previewDimensions[1], true);
-
-        sampledBitmap.recycle();
-
-        return previewBitmap;
+        if (previewDimensions[0] != sampleWidth && previewDimensions[1] != sampleHeight) {
+            Bitmap previewBitmap = Bitmap.createScaledBitmap(sampledBitmap, previewDimensions[0], previewDimensions[1], true);
+            sampledBitmap.recycle();
+            return previewBitmap;
+        }
+        else {
+            return sampledBitmap;
+        }
     }
 
     private static MessagePart buildPreviewMessagePart(Context context, LayerClient client, InputStream inputStream,
@@ -234,7 +279,6 @@ public class ThreePartImageUtils {
     private static Message newThreePartImageMessageFromUri(Context context, LayerClient client, @NonNull Uri uri) throws IOException {
         if (client == null) throw new IllegalArgumentException("Null LayerClient");
 
-        //InputStream inputStream = StorageAccessUtilities.getInputStreamFromUri(context, uri, MIME_TYPE_FILTER_IMAGE);
         InputStream inputStream = context.getContentResolver().openInputStream(uri);
         ExifInterface exifData = getExifData(inputStream);
 
@@ -264,6 +308,35 @@ public class ThreePartImageUtils {
         parts[PART_INDEX_PREVIEW] = preview;
         parts[PART_INDEX_INFO] = info;
         return client.newMessage(parts);
+    }
+
+    /**
+     * Need to copy the file into the cache since the APIs to read exifdata from
+     * {@link FileDescriptor} & {@link InputStream} are not available on Android versions < Nougat.
+     *
+     * The only option is to read that information from a file, which necessitates the use of
+     * {@link #writeStreamToFile(String, InputStream)}, after which the file handling is standard
+     * for all Android versions < Nougat
+     */
+    private static Message newThreePartImageMessageFromFileDescriptor(Context context, LayerClient client, @NonNull FileDescriptor fileDescriptor) throws IOException {
+        if (client == null) throw new IllegalArgumentException("Null LayerClient");
+
+        InputStream inputStream = new FileInputStream(fileDescriptor);
+        String filePath = context.getCacheDir() + "/img_" + Calendar.getInstance().getTimeInMillis();
+        writeStreamToFile(filePath, inputStream);
+        return newThreePartImageMessage(context, client, new File(filePath));
+    }
+
+    private static void writeStreamToFile(String filePath, InputStream inputStream) throws IOException {
+        OutputStream stream = new BufferedOutputStream(new FileOutputStream(filePath));
+        int bufferSize = 1024;
+        byte[] buffer = new byte[bufferSize];
+        int len = 0;
+        while ((len = inputStream.read(buffer)) != -1) {
+            stream.write(buffer, 0, len);
+        }
+        if (stream != null)
+            stream.close();
     }
 
     private static int[] getOrientationData(ExifInterface exifInterface) {
