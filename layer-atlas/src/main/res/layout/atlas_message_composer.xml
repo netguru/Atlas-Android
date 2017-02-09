@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright 2015 Layer. All rights reserved.
+<?xml version="1.0" encoding="utf-8"?><!-- Copyright 2015 Layer. All rights reserved.
     
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -14,10 +13,10 @@
      limitations under the License.    
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:layout_width="match_parent"
-              android:layout_height="wrap_content"
-              android:background="@drawable/atlas_message_composer_background"
-              android:orientation="horizontal">
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/atlas_message_composer_background"
+    android:orientation="horizontal">
 
     <ImageView
         android:id="@+id/attachment"
@@ -27,8 +26,7 @@
         android:layout_marginLeft="@dimen/atlas_icon_button_side_padding"
         android:layout_marginRight="@dimen/atlas_icon_button_side_padding"
         android:scaleType="center"
-        android:src="@drawable/ic_add_white_24dp"
-        />
+        android:src="@drawable/ic_add_white_24dp" />
 
     <EditText
         android:id="@+id/message_edit_text"
@@ -36,13 +34,13 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:layout_weight="1"
+        android:background="@drawable/atlas_edit_text_background"
         android:hint="@string/atlas_message_composer_hint"
+        android:maxLength="@integer/atlas_composer_input_character_limit"
         android:maxLines="3"
         android:minHeight="@dimen/atlas_input_height"
-        android:textSize="@dimen/atlas_text_size_input"
-        android:background="@drawable/atlas_edit_text_background"
         android:textCursorDrawable="@drawable/atlas_edit_text_cursor"
-        />
+        android:textSize="@dimen/atlas_text_size_input" />
 
     <Button
         android:id="@+id/send_button"
@@ -52,7 +50,6 @@
         android:layout_marginLeft="@dimen/atlas_icon_button_side_padding"
         android:layout_marginRight="@dimen/atlas_icon_button_side_padding"
         android:text="@string/atlas_message_composer_send_button"
-        android:textSize="@dimen/atlas_text_size_button"
-        />
+        android:textSize="@dimen/atlas_text_size_button" />
 
 </LinearLayout>
