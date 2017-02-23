@@ -36,7 +36,6 @@
         android:layout_weight="1"
         android:background="@drawable/atlas_edit_text_background"
         android:hint="@string/atlas_message_composer_hint"
-        android:maxLength="@integer/atlas_composer_input_character_limit"
         android:maxLines="3"
         android:minHeight="@dimen/atlas_input_height"
         android:textCursorDrawable="@drawable/atlas_edit_text_cursor"

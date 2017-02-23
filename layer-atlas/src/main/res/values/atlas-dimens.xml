@@ -47,7 +47,7 @@
     <dimen name="atlas_text_size_chip">13sp</dimen>
     <dimen name="atlas_cursor_width">1dp</dimen>
 
-    <integer name="atlas_composer_input_character_limit">1000</integer>
+    <integer name="atlas_short_input_character_limit">80</integer>
 
 
     <!-- ####################################################################################### -->

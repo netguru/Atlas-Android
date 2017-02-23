@@ -5,26 +5,24 @@
     <com.layer.atlas.util.views.MaxHeightScrollView
         android:id="@+id/selected_participant_scroll"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        >
+        android:layout_height="wrap_content">
 
         <com.layer.atlas.util.views.FlowLayout
             android:id="@+id/selected_participant_group"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            >
+            android:layout_height="wrap_content">
 
             <com.layer.atlas.util.views.EmptyDelEditText
                 android:id="@+id/filter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:background="@drawable/atlas_edit_text_background"
                 android:imeOptions="actionDone"
+                android:maxLength="@integer/atlas_short_input_character_limit"
                 android:minWidth="@dimen/atlas_participant_filter_min_width"
                 android:singleLine="true"
-                android:textSize="@dimen/atlas_text_size_input"
-                android:background="@drawable/atlas_edit_text_background"
                 android:textCursorDrawable="@drawable/atlas_edit_text_cursor"
-                />
+                android:textSize="@dimen/atlas_text_size_input" />
 
         </com.layer.atlas.util.views.FlowLayout>
     </com.layer.atlas.util.views.MaxHeightScrollView>
