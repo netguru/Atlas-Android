@@ -28,6 +28,7 @@ import android.os.Parcelable;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.graphics.drawable.DrawableCompat;
 import android.text.Editable;
+import android.text.InputFilter;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
 import android.util.TypedValue;
@@ -147,6 +148,13 @@ public class AtlasMessageComposer extends FrameLayout {
         });
         applyStyle();
         return this;
+    }
+
+    /**
+     * @param limit EditText characters limit.
+     */
+    public void setChatMessageMaxLength(int limit) {
+        mMessageEditText.setFilters(new InputFilter[]{new InputFilter.LengthFilter(limit)});
     }
 
     /**
