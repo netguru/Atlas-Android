@@ -133,6 +133,9 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
      * @return This AtlasMessagesRecyclerView.
      */
     public AtlasMessagesRecyclerView setConversation(Conversation conversation) {
+        if (conversation != null) {
+            mAdapter.setReadReceiptsEnabled(conversation.isReadReceiptsEnabled());
+        }
         mAdapter.setQuery(Query.builder(Message.class)
                 .predicate(new Predicate(Message.Property.CONVERSATION, Predicate.Operator.EQUAL_TO, conversation))
                 .sortDescriptor(new SortDescriptor(Message.Property.POSITION, SortDescriptor.Order.ASCENDING))
@@ -198,6 +201,27 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
     public View getFooterView() {
         return mAdapter.getFooterView();
     }
+
+    /**
+     * Convenience pass-through to this list's AtlasMessagesAdapter.
+     *
+     * @see AtlasMessagesAdapter#getShouldShowAvatarInOneOnOneConversations()
+     */
+
+    public boolean getShouldShowAvatarInOneOnOneConversations() {
+        return mAdapter.getShouldShowAvatarInOneOnOneConversations();
+    }
+
+    /**
+     * Convenience pass-through to this list's AtlasMessagesAdapter.
+     *
+     * @see AtlasMessagesAdapter#setShouldShowAvatarInOneOnOneConversations(boolean)
+     */
+
+    public void setShouldShowAvatarInOneOnOneConversations(boolean shouldShowAvatarInOneOnOneConversations) {
+        mAdapter.setShouldShowAvatarInOneOnOneConversations(shouldShowAvatarInOneOnOneConversations);
+    }
+
 
     /**
      * Scrolls if the user is at the end

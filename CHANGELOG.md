@@ -1,5 +1,15 @@
 # Atlas Android
 
+## 0.4.3
+### Major Changes
+  * Expose `setShouldShowAvatarInOneOnOneConversations` & `getShouldShowAvatarInOneOnOneConversations` on `AtlasMessagesRecyclerView`
+  to allow the showing of the "other" participant's Avatar in a conversation with only 2 participants.
+
+## 0.4.2
+
+### Major Changes
+  * Update to Layer Android SDK Version 0.23.8
+  
 ## 0.4.1
 
 ### Major Changes
