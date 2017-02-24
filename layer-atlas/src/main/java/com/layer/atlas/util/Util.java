@@ -44,6 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -74,14 +75,18 @@ public class Util {
     }
 
     public static String getConversationTitle(LayerClient client, Conversation conversation) {
+        return getConversationTitle(client, conversation, conversation.getParticipants());
+    }
+
+    public static String getConversationTitle(LayerClient client, Conversation conversation, Set<Identity> participants) {
         String metadataTitle = getConversationMetadataTitle(conversation);
         if (metadataTitle != null) return metadataTitle.trim();
 
         StringBuilder sb = new StringBuilder();
         Identity authenticatedUser = client.getAuthenticatedUser();
-        for (Identity participant : conversation.getParticipants()) {
+        for (Identity participant : participants) {
             if (participant.equals(authenticatedUser)) continue;
-            String initials = conversation.getParticipants().size() > 2 ? getInitials(participant) : Util.getDisplayName(participant);
+            String initials = participants.size() > 2 ? getInitials(participant) : Util.getDisplayName(participant);
             if (sb.length() > 0) sb.append(", ");
             sb.append(initials);
         }
