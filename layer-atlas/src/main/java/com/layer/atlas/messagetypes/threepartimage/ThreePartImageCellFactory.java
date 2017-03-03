@@ -3,6 +3,7 @@ package com.layer.atlas.messagetypes.threepartimage;
 import android.app.Activity;
 import android.app.ActivityOptions;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -10,7 +11,9 @@ import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.v4.widget.ContentLoadingProgressBar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
+import android.text.format.Formatter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,7 +36,10 @@ import com.squareup.picasso.Transformation;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.ref.WeakReference;
 import java.util.List;
+
+import static com.layer.sdk.messaging.MessagePart.TransferStatus.COMPLETE;
 
 /**
  * ThreePartImage handles image Messages with three parts: full image, preview image, and
@@ -49,6 +55,7 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
     private final LayerClient mLayerClient;
     private final Picasso mPicasso;
     private Transformation mTransform;
+    private WeakReference<AlertDialog> dialogWeakReference = null;
 
     public ThreePartImageCellFactory(LayerClient mLayerClient, Picasso mPicasso) {
         super(CACHE_SIZE_BYTES);
@@ -148,17 +155,15 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
     public void onClick(View v) {
         AtlasImagePopupActivity.init(mLayerClient);
         Context context = v.getContext();
-        if (context == null) return;
+        if (context == null) {
+            return;
+        }
         Info info = (Info) v.getTag();
-        Intent intent = new Intent(context, AtlasImagePopupActivity.class);
-        intent.putExtra("previewId", info.previewPartId);
-        intent.putExtra("fullId", info.fullPartId);
-        intent.putExtra("info", info);
-
-        if (Build.VERSION.SDK_INT >= 21 && context instanceof Activity) {
-            context.startActivity(intent, ActivityOptions.makeSceneTransitionAnimation((Activity) context, v, "image").toBundle());
+        MessagePart fullMessagePart = (MessagePart) mLayerClient.get(info.fullPartId);
+        if (fullMessagePart != null && fullMessagePart.getTransferStatus() == COMPLETE) {
+            showImagePopup(context, info, v);
         } else {
-            context.startActivity(intent);
+            showImageSizeDialog(context, info, v);
         }
     }
 
@@ -188,6 +193,58 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
         return mTransform;
     }
 
+    private void showImageSizeDialog(Context context, Info info, View v) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        showImageSizeDialog(context, builder, info, v);
+    }
+
+    private void showImageSizeDialog(final Context context, AlertDialog.Builder builder, final Info info, final View v) {
+        if (dialogWeakReference != null && dialogWeakReference.get() != null) {
+            return;
+        }
+        builder.setTitle(R.string.atlas_three_part_image_size_dialog_title);
+        builder.setMessage(context.getResources().getString(
+                R.string.atlas_three_part_image_size_dialog_message,
+                Formatter.formatShortFileSize(context.getApplicationContext(),
+                        info.fullPartSizeInBytes)));
+        builder.setCancelable(true);
+        builder.setPositiveButton(R.string.atlas_three_part_image_size_dialog_positive,
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        showImagePopup(context, info, v);
+                    }
+                });
+        builder.setNegativeButton(R.string.atlas_three_part_image_size_dialog_negative,
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        //Empty
+                    }
+                });
+        builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialogInterface) {
+                dialogWeakReference.clear();
+            }
+        });
+
+        dialogWeakReference = new WeakReference<>(builder.show());
+    }
+
+    private void showImagePopup(Context context, Info info, View v) {
+        Intent intent = new Intent(context, AtlasImagePopupActivity.class);
+        intent.putExtra("previewId", info.previewPartId);
+        intent.putExtra("fullId", info.fullPartId);
+        intent.putExtra("info", info);
+        if (Build.VERSION.SDK_INT >= 21 && context instanceof Activity) {
+            context.startActivity(intent,
+                    ActivityOptions.makeSceneTransitionAnimation((Activity) context, v, "image").toBundle());
+        } else {
+            context.startActivity(intent);
+        }
+    }
+
     //==============================================================================================
     // Static utilities
     //==============================================================================================
@@ -204,8 +261,7 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
     public String getPreviewText(Context context, Message message) {
         if (isType(message)) {
             return context.getString(R.string.atlas_message_preview_image);
-        }
-        else {
+        } else {
             throw new IllegalArgumentException("Message is not of the correct type - ThreePartImage");
         }
     }
@@ -213,12 +269,14 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
     public static Info getInfo(Message message) {
         try {
             Info info = new Info();
+            MessagePart fullPreview = ThreePartImageUtils.getFullPart(message);
             JSONObject infoObject = new JSONObject(new String(ThreePartImageUtils.getInfoPart(message).getData()));
             info.orientation = infoObject.getInt("orientation");
             info.width = infoObject.getInt("width");
             info.height = infoObject.getInt("height");
             info.previewPartId = ThreePartImageUtils.getPreviewPart(message).getId();
-            info.fullPartId = ThreePartImageUtils.getFullPart(message).getId();
+            info.fullPartId = fullPreview.getId();
+            info.fullPartSizeInBytes = fullPreview.getSize();
             return info;
         } catch (JSONException e) {
             if (Log.isLoggable(Log.ERROR)) {
@@ -238,6 +296,7 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
         public int width;
         public int height;
         public Uri fullPartId;
+        public long fullPartSizeInBytes;
         public Uri previewPartId;
 
         @Override

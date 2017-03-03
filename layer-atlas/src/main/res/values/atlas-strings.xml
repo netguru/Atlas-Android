@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright 2015 Layer. All rights reserved.
+<?xml version="1.0" encoding="utf-8"?><!-- Copyright 2015 Layer. All rights reserved.
     
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -58,5 +57,10 @@
 
     <string name="atlas_message_composer_hint">Message</string>
     <string name="atlas_message_composer_send_button">SEND</string>
+
+    <string name="atlas_three_part_image_size_dialog_title">TO BE DOWNLOADED</string>
+    <string name="atlas_three_part_image_size_dialog_message">Size: %1$s</string>
+    <string name="atlas_three_part_image_size_dialog_positive">Show</string>
+    <string name="atlas_three_part_image_size_dialog_negative">Cancel</string>
 
 </resources>
