@@ -205,7 +205,7 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
         builder.setTitle(R.string.atlas_three_part_image_size_dialog_title);
         builder.setMessage(context.getResources().getString(
                 R.string.atlas_three_part_image_size_dialog_message,
-                Formatter.formatShortFileSize(context.getApplicationContext(),
+                Formatter.formatShortFileSize(context,
                         info.fullPartSizeInBytes)));
         builder.setCancelable(true);
         builder.setPositiveButton(R.string.atlas_three_part_image_size_dialog_positive,
