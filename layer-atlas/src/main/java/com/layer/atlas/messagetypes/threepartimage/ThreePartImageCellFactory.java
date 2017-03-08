@@ -40,6 +40,7 @@ import java.lang.ref.WeakReference;
 import java.util.List;
 
 import static com.layer.sdk.messaging.MessagePart.TransferStatus.COMPLETE;
+import static com.layer.sdk.messaging.MessagePart.TransferStatus.DOWNLOADING;
 
 /**
  * ThreePartImage handles image Messages with three parts: full image, preview image, and
@@ -160,7 +161,8 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
         }
         Info info = (Info) v.getTag();
         MessagePart fullMessagePart = (MessagePart) mLayerClient.get(info.fullPartId);
-        if (fullMessagePart != null && fullMessagePart.getTransferStatus() == COMPLETE) {
+        if (fullMessagePart != null && (fullMessagePart.getTransferStatus() == COMPLETE ||
+                fullMessagePart.getTransferStatus() == DOWNLOADING)) {
             showImagePopup(context, info, v);
         } else {
             showImageSizeDialog(context, info, v);
