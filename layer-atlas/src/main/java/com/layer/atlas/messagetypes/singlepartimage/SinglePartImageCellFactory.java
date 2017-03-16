@@ -114,16 +114,19 @@ public class SinglePartImageCellFactory extends AtlasCellFactory<SinglePartImage
 
     @Override
     public boolean isType(Message message) {
-        return message.getMessageParts().size() == 1
-                && message.getMessageParts().get(0).getMimeType().startsWith("image/");
+        for (MessagePart part : message.getMessageParts()) {
+            if (part.getMimeType().startsWith("image/")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
     public String getPreviewText(Context context, Message message) {
         if (isType(message)) {
             return context.getString(R.string.atlas_message_preview_image);
-        }
-        else {
+        } else {
             throw new IllegalArgumentException("Message is not of the correct type - SinglePartImage");
         }
     }
