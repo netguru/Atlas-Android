@@ -63,7 +63,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.layer.atlas:layer-atlas:0.4.2'
+    compile 'com.layer.atlas:layer-atlas:0.4.5'
 }
 ```
 
