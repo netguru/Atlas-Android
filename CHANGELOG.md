@@ -1,5 +1,13 @@
 # Atlas Android
 
+## 0.4.5
+
+### Major Changes
+  * Update to Layer Android SDK Version 0.23.11
+  
+### Bug Fixes
+  * Fixing avatars in group conversations (#156)
+  
 ## 0.4.4
 
 ### Major Changes

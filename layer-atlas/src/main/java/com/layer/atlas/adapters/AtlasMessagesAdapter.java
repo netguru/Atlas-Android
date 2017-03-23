@@ -393,9 +393,15 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
                     viewHolder.mAvatar.setVisibility(View.GONE);
                 }
             } else if (cluster.mClusterWithNext == null || cluster.mClusterWithNext != ClusterType.LESS_THAN_MINUTE) {
-                // Last message in cluster
-
-
+                Identity sender = message.getSender();
+                if (sender != null) {
+                    Participant participant = mParticipants.get(sender.getUserId());
+                    if (participant != null) {
+                        // Last message in cluster
+                        viewHolder.mAvatar.setVisibility(View.VISIBLE);
+                        viewHolder.mAvatar.setParticipant(participant);
+                    }
+                }
                 // Add the position to the positions map for Identity updates
                 mIdentityEventListener.addIdentityPosition(position, Collections.singleton(message.getSender()));
             } else {
