@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
@@ -61,8 +62,7 @@ public class LocationCellFactory extends AtlasCellFactory<LocationCellFactory.Ce
     public String getPreviewText(Context context, Message message) {
         if (isType(message)) {
             return context.getString(R.string.atlas_message_preview_location);
-        }
-        else {
+        } else {
             throw new IllegalArgumentException("Message is not of the correct type - Location");
         }
     }
@@ -127,7 +127,11 @@ public class LocationCellFactory extends AtlasCellFactory<LocationCellFactory.Ce
         Location location = (Location) v.getTag();
         String encodedLabel = (location.mLabel == null) ? URLEncoder.encode("Shared Marker") : URLEncoder.encode(location.mLabel);
         Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + location.mLatitude + "," + location.mLongitude + "(" + encodedLabel + ")&z=16"));
-        v.getContext().startActivity(intent);
+        if (intent.resolveActivity(v.getContext().getPackageManager()) != null) {
+            v.getContext().startActivity(intent);
+        } else {
+            Toast.makeText(v.getContext(), R.string.atlas_location_app_not_found, Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
