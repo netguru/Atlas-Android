@@ -96,6 +96,10 @@ public class AtlasTypingIndicator extends FrameLayout implements LayerTypingIndi
         return this;
     }
 
+    public void onDestroy() {
+        mActivityListener = null;
+    }
+
     /**
      * Sets the TypingActivityListener for receiving TypingIndicator activity state changes.
      *
@@ -135,8 +139,8 @@ public class AtlasTypingIndicator extends FrameLayout implements LayerTypingIndi
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        refresh();
     }
+
 
     @Override
     public void onTypingIndicator(LayerClient layerClient, Conversation conversation, Identity user, TypingIndicator typingIndicator) {
