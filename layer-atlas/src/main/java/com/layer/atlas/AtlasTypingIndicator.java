@@ -139,6 +139,7 @@ public class AtlasTypingIndicator extends FrameLayout implements LayerTypingIndi
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
+        refresh();
     }
 
 
