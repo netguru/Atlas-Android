@@ -1,5 +1,11 @@
 # Atlas Android
 
+## 0.4.6
+
+### Major Changes
+  * Update to Layer Android SDK Version 0.23.12
+  * Update Google Play Services to 10.2.0
+  
 ## 0.4.5
 
 ### Major Changes
