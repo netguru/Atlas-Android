@@ -1,6 +1,6 @@
-#Atlas
+# Atlas
 
-##<a name="overview"></a>Overview
+## <a name="overview"></a>Overview
 
 Atlas is an open source framework of customizable UI components for use with the Layer SDK designed to get messaging tested and integrated quickly.  This repository contains the Atlas library.  For a fully-featured messaging app, see the open source [Atlas Messenger](https://github.com/layerhq/Atlas-Android-Messenger) project, which uses this Atlas library and the Layer SDK.
 
@@ -8,12 +8,12 @@ Atlas is an open source framework of customizable UI components for use with the
 
 Atlas requires Android API Level >= 14 (OS v4.0). The Layer SDK version requirements for each release are tightly coupled. See the release notes for details about specifics.
 
-##<a name="key_concepts"></a>Key Concepts
+## <a name="key_concepts"></a>Key Concepts
 With Atlas, Messages have types.  One type might be rich text, and another might be a map location or photo.  Anything that can be packaged into a set of MIME Types and data can be represented by Atlas.
 
 Under the hood, <a href="layer-atlas/src/main/java/com/layer/atlas/messagetypes/MessageSender.java">MessageSenders</a> send individual Message types, and <a href="layer-atlas/src/main/java/com/layer/atlas/messagetypes/AtlasCellFactory.java">AtlasCellFactories</a> render them.  Additional Message types can be added to your app by extending these classes.  For a list of default types, see the <a href="layer-atlas/src/main/java/com/layer/atlas/messagetypes">messagetypes</a> subpackage.
 
-##<a name="api_quickstart"></a>API Quickstart
+## <a name="api_quickstart"></a>API Quickstart
 The Atlas library is located in the `layer-atlas` directory.  The table below details the most important classes in Atlas and is hyperlinked directly to the current java file.
 
 <table>
@@ -53,7 +53,7 @@ The Atlas library is located in the `layer-atlas` directory.  The table below de
     </tr>
 </table>
 
-##<a name="installation"></a>Installation
+## <a name="installation"></a>Installation
 
 Add the following to the `build.gradle`:
 ```groovy
@@ -63,24 +63,24 @@ repositories {
 }
 
 dependencies {
-    compile 'com.layer.atlas:layer-atlas:0.4.5'
+    compile 'com.layer.atlas:layer-atlas:0.4.6'
 }
 ```
 
-###<a name="libraries"></a>Libraries
+### <a name="libraries"></a>Libraries
 
 Atlas uses [Picasso](https://github.com/square/picasso) for image caching, resizing, and processing, and [Subsampling Scale Image View](https://github.com/davemorrissey/subsampling-scale-image-view) for image its in-app lightbox.  Other dependencies include the Android `recyclerview`, `appcompat`, and `design` libraries.
 
-##<a name="component_details"></a>Component Details
+## <a name="component_details"></a>Component Details
 Atlas is divided into five basic `View` components, typically presented on a screen with a user's [conversations](#conversations), a screen with [messages](#messages) within a conversation, and a component that lets the user select [participants](#participants).
 
-###<a name="conversations"></a>Conversations
+### <a name="conversations"></a>Conversations
 
 ####AtlasConversationsRecyclerView
 
 The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasConversationsRecyclerView.java">AtlasConversationsRecyclerView</a> is a list of Conversations.
 
-#####XML
+##### XML
 
 ```xml
 <com.layer.atlas.AtlasConversationsRecyclerView
@@ -90,7 +90,7 @@ The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasConversationsRecycle
     />
 ```
 
-#####Java
+##### Java
 
 ```java
 conversationsList = ((AtlasConversationsRecyclerView) findViewById(R.id.conversations_list))
@@ -110,13 +110,13 @@ conversationsList = ((AtlasConversationsRecyclerView) findViewById(R.id.conversa
     new SinglePartImageCellFactory(layerClient, picasso));
 ```
 
-###<a name="messages"></a>Messages
+### <a name="messages"></a>Messages
 
-####AtlasMessagesRecyclerView
+#### AtlasMessagesRecyclerView
 
 The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasMessagesRecyclerView.java">AtlasMessagesRecyclerView</a> is list of Messages, rendered by <a href="layer-atlas/src/main/java/com/layer/atlas/messagetypes/AtlasCellFactory.java">AtlasCellFactories</a>.
 
-#####XML
+##### XML
 
 ```xml
 <com.layer.atlas.AtlasMessagesRecyclerView
@@ -126,7 +126,7 @@ The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasMessagesRecyclerView
     />
 ```
 
-#####Java
+##### Java
 
 ```java
 messagesList = ((AtlasMessagesRecyclerView) findViewById(R.id.messages_list))
@@ -138,11 +138,11 @@ messagesList = ((AtlasMessagesRecyclerView) findViewById(R.id.messages_list))
 		new LocationCellFactory(this, picasso));
 ```
 
-####AtlasMessageComposer
+#### AtlasMessageComposer
 
 The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasMessageComposer.java">AtlasMessageComposer</a> is a text entry area for composing messages and a menu of <a href="layer-atlas/src/main/java/com/layer/atlas/messagetypes/AttachmentSender.java">AttachmentSenders</a>. 
 
-#####XML
+##### XML
 
 ```xml
 <com.layer.atlas.AtlasMessageComposer
@@ -152,7 +152,7 @@ The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasMessageComposer.java
     />
 ```
 
-#####Java
+##### Java
 
 ```java
 messageComposer = ((AtlasMessageComposer) findViewById(R.id.message_composer))
@@ -164,11 +164,11 @@ messageComposer = ((AtlasMessageComposer) findViewById(R.id.message_composer))
 		new LocationSender("Location", R.drawable.ic_place_white_24dp, this));
 ```
 
-####AtlasTypingIndicator
+#### AtlasTypingIndicator
 
 The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasTypingIndicator.java">AtlasTypingIndicator</a> presents the user with active typists.
 
-#####XML
+##### XML
 
 ```xml
 <com.layer.atlas.AtlasTypingIndicator
@@ -178,7 +178,7 @@ The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasTypingIndicator.java
     />
 ```
 
-#####Java
+##### Java
 
 ```java
 typingIndicator = new AtlasTypingIndicator(this)
@@ -191,7 +191,7 @@ typingIndicator = new AtlasTypingIndicator(this)
 	});
 ```
 
-###<a name="Message Types"></a>Message Types
+### <a name="Message Types"></a>Message Types
 By default, Atlas supports the following types of messages.
 
 | Type            | Description |
@@ -204,14 +204,14 @@ By default, Atlas supports the following types of messages.
 
 We expect to add support for other handlers in future. If you would like to build a handler, please check <a href="docs/Message-Handlers.md">doc on message handlers</a>.
 
-###<a name="Identity"></a>Identity
+### <a name="Identity"></a>Identity
 
 An application server can directly upload user information to Layer server. This user information is called <a href="https://docs.layer.com/sdk/android/identities">Identity</a>. `AtlasAddressBar` and `AtlasAvatar` are controls that are used to render the Identity information.
 
-####AtlasAddressBar
+#### AtlasAddressBar
 `AtlasAddressBar` can be used to show a list of users. For eg, the list of users in a `Conversation` or to show a user list for creating a new `Conversation`.
 
-#####XML
+##### XML
 
 ```xml
 <com.layer.atlas.AtlasAddressBar
@@ -221,7 +221,7 @@ An application server can directly upload user information to Layer server. This
     />
 ```
 
-#####Java
+##### Java
 
 ```java
 addressBar = (AtlasAddressBar) findViewById(R.id.address_bar)
@@ -247,10 +247,10 @@ addressBar = (AtlasAddressBar) findViewById(R.id.address_bar)
 	});
 ```
 
-####AtlasAvatar
+#### AtlasAvatar
 `AtlasAvatar`can be used to show information about one user, or as a cluster of multiple users. `AtlasAvatar` uses [Picasso](https://github.com/square/picasso) to render the avatar image. So, you need to `init` 
 
-#####XML
+##### XML
 
 ```xml
         <com.layer.atlas.AtlasAvatar
@@ -260,7 +260,7 @@ addressBar = (AtlasAddressBar) findViewById(R.id.address_bar)
             android:layout_margin="@dimen/atlas_padding_normal"/>
 ```
 
-#####Java
+##### Java
 
 ```java
 	    // To create an avatar
@@ -276,18 +276,18 @@ addressBar = (AtlasAddressBar) findViewById(R.id.address_bar)
 	    viewHolder.mAvatarCluster.setParticipants(participants);
 ```
 
-##<a name="contributing"></a>Contributing
+## <a name="contributing"></a>Contributing
 Atlas is an Open Source project maintained by Layer. Feedback and contributions are always welcome and the maintainers try to process patches as quickly as possible. Feel free to open up a Pull Request or Issue on Github.
 
-##<a name="license"></a>License
+## <a name="license"></a>License
 
 Atlas is licensed under the terms of the [Apache License, version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html). Please see the [LICENSE](LICENSE) file for full details.
 
-##<a name="contact"></a>Contact
+## <a name="contact"></a>Contact
 
 Atlas was developed in San Francisco by the Layer team. If you have any technical questions or concerns about this project feel free to reach out to [Layer Support](mailto:support@layer.com).
 
-###<a name="credits"></a>Credits
+### <a name="credits"></a>Credits
 
 * [Amar Srinivasan](https://github.com/sriamar)
 * [Steven Jones](https://github.com/sjones94549)
