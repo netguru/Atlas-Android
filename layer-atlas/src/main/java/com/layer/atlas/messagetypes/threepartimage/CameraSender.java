@@ -2,6 +2,7 @@ package com.layer.atlas.messagetypes.threepartimage;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -69,6 +70,12 @@ public class CameraSender extends AttachmentSender {
 
         Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
         cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, outputUri);
+        // Temporary permissions for Android <4.2, 5> https://medium.com/@quiro91/sharing-files-through-intents-part-2-fixing-the-permissions-before-lollipop-ceb9bb0eec3a
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.LOLLIPOP && Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            cameraIntent.setClipData(ClipData.newRawUri("", outputUri));
+            cameraIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION |
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        }
 
         activity.startActivityForResult(cameraIntent, ACTIVITY_REQUEST_CODE);
     }
