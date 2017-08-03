@@ -116,6 +116,9 @@ public class AvatarTypingIndicatorFactory implements AtlasTypingIndicator.Typing
                         List<AtlasAvatar> newlyFinished = new ArrayList<>();
                         Set<Identity> newlyActives = new HashSet<>(typingUserIds.keySet());
                         for (AtlasAvatar avatar : tag.mActives) {
+                            if (!avatar.getParticipants().keySet().iterator().hasNext())
+                                return;
+
                             String existingTypistKey = avatar.getParticipants().keySet().iterator().next();
                             Identity existingTypist = findTypist(existingTypistKey, typingUserIds.keySet());
                             if (existingTypist == null) {
