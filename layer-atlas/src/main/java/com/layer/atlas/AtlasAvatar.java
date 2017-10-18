@@ -15,7 +15,7 @@ import android.view.ViewGroup;
 
 import com.layer.atlas.support.Participant;
 import com.layer.atlas.util.AvatarStyle;
-import com.layer.atlas.util.Util;
+import com.layer.atlas.util.ConversationFormatter;
 import com.layer.atlas.util.picasso.transformations.CircleTransform;
 import com.layer.sdk.messaging.Identity;
 import com.layer.sdk.messaging.Presence;
@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * AtlasAvatar can be used to show information about one user, or as a cluster of multiple users.
- *
+ * <p>
  * AtlasAvatar uses Picasso to render the avatar image. So, you need to init
  */
 public class AtlasAvatar extends View {
@@ -137,7 +137,7 @@ public class AtlasAvatar extends View {
     /**
      * Enable or disable showing presence information for this avatar. Presence is shown only for
      * single user Avatars. If avatar is a cluster, presence will not be shown.
-     *
+     * <p>
      * Default is `true`, to show presence.
      *
      * @param shouldShowPresence set to `true` to show presence, `false` otherwise.
@@ -150,7 +150,7 @@ public class AtlasAvatar extends View {
 
     /**
      * Returns if `shouldShowPresence` flag is enabled for this avatar.
-     *
+     * <p>
      * Default is `true`
      *
      * @return `true` if `shouldShowPresence` is set to `true`, `false` otherwise.
@@ -217,7 +217,7 @@ public class AtlasAvatar extends View {
         for (String added : diff.added) {
             Participant participant = mParticipants.get(added);
             if (participant == null) continue;
-            mInitials.put(added, Util.getInitialsFromParticipant(participant.getName()));
+            mInitials.put(added, ConversationFormatter.getInitialsFromParticipant(participant.getName()));
 
             if (participant.getAvatarUrl() == null || mPicasso == null) {
                 invalidate();
@@ -342,7 +342,8 @@ public class AtlasAvatar extends View {
 
             // Presence
             if (mShouldShowPresence && avatarCount == 1) { // Show only for single user avatars
-                drawPresence(canvas, entry.getKey());
+                //TODO: Move to Identities instead of Participant(custom implementation)
+//                drawPresence(canvas, entry.getKey());
             }
 
             // Translate for next avatar

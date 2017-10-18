@@ -46,15 +46,17 @@ import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 import rx.subscriptions.CompositeSubscription;
 
+//TODO: Check what's changed!!!
 public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConversationsAdapter.ViewHolder> implements AtlasBaseAdapter<Conversation>, RecyclerViewController.Callback {
     protected final LayerClient mLayerClient;
     protected final Picasso mPicasso;
     private final RecyclerViewController<Conversation> mQueryController;
     private final LayoutInflater mInflater;
+    private long mInitialHistory = 0;
+
     //Added to work with participant object
     private final ChatAttendeesProvider chatAttendeesProvider;
     private final CompositeSubscription subscriptions = new CompositeSubscription();
-    private long mInitialHistory = 0;
 
     private OnConversationClickListener mConversationClickListener;
     private ViewHolder.OnClickListener mViewHolderClickListener;
@@ -67,18 +69,19 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     protected Set<AtlasCellFactory> mCellFactories;
     private Set<AtlasCellFactory> mDefaultCellFactories;
 
-    public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, ChatAttendeesProvider chatAttendeesProvider) {
-        this(context, client, picasso, chatAttendeesProvider, null);
     protected ConversationFormatter mConversationFormatter;
     protected boolean mShouldShowAvatarPresence = true;
 
-    public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, ConversationFormatter conversationFormatter) {
-        this(context, client, picasso, null, conversationFormatter);
+
+    public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso,
+                                     ChatAttendeesProvider chatAttendeesProvider, ConversationFormatter conversationFormatter) {
+        this(context, client, picasso, chatAttendeesProvider, null, conversationFormatter);
     }
 
-    public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, ChatAttendeesProvider chatAttendeesProvider, Collection<String> updateAttributes) {
+    public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso,
+                                     ChatAttendeesProvider chatAttendeesProvider,
+                                     Collection<String> updateAttributes, ConversationFormatter conversationFormatter) {
         this.chatAttendeesProvider = chatAttendeesProvider;
-    public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, Collection<String> updateAttributes, ConversationFormatter conversationFormatter) {
         mConversationFormatter = conversationFormatter;
         Query<Conversation> query = Query.builder(Conversation.class)
                 /* Only show conversations we're still a member of */
@@ -239,8 +242,6 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         mIdentityEventListener.addIdentityPosition(position, participants);
 
         viewHolder.mTitleView.setText("");
-        viewHolder.mAvatarCluster.setParticipants(participants);
-        viewHolder.mTitleView.setText(mConversationFormatter.getConversationTitle(mLayerClient, conversation, participants));
         viewHolder.applyStyle(conversation.getTotalUnreadMessageCount() > 0);
 
         if (lastMessage == null) {
@@ -263,7 +264,8 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
                     @Override
                     public void call(List<Participant> participants) {
                         if (!participants.isEmpty()) {
-                            viewHolder.mTitleView.setText(Util.getConversationTitle(participants, conversation));
+                            viewHolder.mTitleView.setText(ConversationFormatter.getConversationTitle(participants, conversation));
+                            //TODO: What about PRESENCE? ? ?
                             viewHolder.mAvatarCluster.setParticipants(Util.createParticipantsMap(participants));
                         }
                     }
@@ -429,7 +431,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         protected Conversation mConversation;
         protected OnClickListener mClickListener;
 
-        public ViewHolder(View itemView, ConversationStyle conversationStyle,  boolean shouldShowAvatarPresence) {
+        public ViewHolder(View itemView, ConversationStyle conversationStyle, boolean shouldShowAvatarPresence) {
             super(itemView);
             itemView.setOnClickListener(this);
             itemView.setOnLongClickListener(this);

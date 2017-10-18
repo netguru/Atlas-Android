@@ -57,9 +57,7 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
     }
 
     public AtlasConversationsRecyclerView init(LayerClient layerClient, Picasso picasso,
-                                               ChatAttendeesProvider chatAttendeesProvider) {
-        // Linear layout manager
-    public AtlasConversationsRecyclerView init(LayerClient layerClient, Picasso picasso, ConversationFormatter conversationFormatter) {
+                                               ChatAttendeesProvider chatAttendeesProvider, ConversationFormatter conversationFormatter) {
         LinearLayoutManager manager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
         manager.setStackFromEnd(false);
         setLayoutManager(manager);
@@ -67,8 +65,7 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         // Don't flash items when changing content
         setItemAnimator(new NoChangeAnimator());
 
-        mAdapter = new AtlasConversationsAdapter(getContext(), layerClient, picasso, conversationFormatter);
-        mAdapter = new AtlasConversationsAdapter(getContext(), layerClient, picasso, chatAttendeesProvider);
+        mAdapter = new AtlasConversationsAdapter(getContext(), layerClient, picasso, chatAttendeesProvider, conversationFormatter);
         mAdapter.setStyle(conversationStyle);
         super.setAdapter(mAdapter);
         refresh();
@@ -76,8 +73,8 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         return this;
     }
 
-    public AtlasConversationsRecyclerView init(LayerClient layerClient, Picasso picasso) {
-        return init(layerClient, picasso, new ConversationFormatter());
+    public AtlasConversationsRecyclerView init(LayerClient layerClient, Picasso picasso, ChatAttendeesProvider chatAttendeesProvider) {
+        return init(layerClient, picasso, chatAttendeesProvider, new ConversationFormatter());
     }
 
     @Override
