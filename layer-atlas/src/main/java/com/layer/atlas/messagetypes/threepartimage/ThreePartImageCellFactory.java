@@ -102,19 +102,24 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
         params.height = cellDims[1];
         cellHolder.mProgressBar.show();
         RequestCreator creator = mPicasso.load(preview.getId()).tag(PICASSO_TAG).placeholder(PLACEHOLDER);
-        switch (info.orientation) {
-            case ThreePartImageUtils.ORIENTATION_0:
-                creator.resize(cellDims[0], cellDims[1]);
-                break;
-            case ThreePartImageUtils.ORIENTATION_90:
-                creator.resize(cellDims[1], cellDims[0]).rotate(-90);
-                break;
-            case ThreePartImageUtils.ORIENTATION_180:
-                creator.resize(cellDims[0], cellDims[1]).rotate(180);
-                break;
-            default:
-                creator.resize(cellDims[1], cellDims[0]).rotate(90);
-                break;
+
+        if (cellDims[0] > 0 && cellDims[1] > 0) {
+            switch (info.orientation) {
+                case ThreePartImageUtils.ORIENTATION_0:
+                    creator.resize(cellDims[0], cellDims[1]);
+                    break;
+                case ThreePartImageUtils.ORIENTATION_90:
+                    creator.resize(cellDims[1], cellDims[0]).rotate(-90);
+                    break;
+                case ThreePartImageUtils.ORIENTATION_180:
+                    creator.resize(cellDims[0], cellDims[1]).rotate(180);
+                    break;
+                default:
+                    creator.resize(cellDims[1], cellDims[0]).rotate(90);
+                    break;
+            }
+        } else if (Log.isLoggable(Log.ERROR)) {
+            Log.e("Width or Height in ThreePartImageCellFactory.Info of image passed into ThreePartImageCellFactory.bindCellHolder is invalid");
         }
 
         creator.transform(getTransform(cellHolder.mImageView.getContext())).into(cellHolder.mImageView, new Callback() {

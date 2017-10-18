@@ -3,6 +3,7 @@ package com.layer.atlas;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -14,8 +15,10 @@ import android.view.ViewGroup;
 
 import com.layer.atlas.support.Participant;
 import com.layer.atlas.util.AvatarStyle;
-import com.layer.atlas.util.Util;
+import com.layer.atlas.util.ConversationFormatter;
 import com.layer.atlas.util.picasso.transformations.CircleTransform;
+import com.layer.sdk.messaging.Identity;
+import com.layer.sdk.messaging.Presence;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
 
@@ -28,6 +31,11 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * AtlasAvatar can be used to show information about one user, or as a cluster of multiple users.
+ * <p>
+ * AtlasAvatar uses Picasso to render the avatar image. So, you need to init
+ */
 public class AtlasAvatar extends View {
     public static final String TAG = AtlasAvatar.class.getSimpleName();
 
@@ -40,6 +48,10 @@ public class AtlasAvatar extends View {
     private final Paint mPaintInitials = new Paint();
     private final Paint mPaintBorder = new Paint();
     private final Paint mPaintBackground = new Paint();
+    private final Paint mPresencePaint = new Paint();
+    private final Paint mBackgroundPaint = new Paint();
+
+    private boolean mShouldShowPresence = true;
 
     // TODO: make these styleable
     private static final int MAX_AVATARS = 3;
@@ -70,6 +82,10 @@ public class AtlasAvatar extends View {
     private float mDeltaX;
     private float mDeltaY;
     private float mTextSize;
+    private float mPresenceOuterRadius;
+    private float mPresenceInnerRadius;
+    private float mPresenceCenterX;
+    private float mPresenceCenterY;
 
     private Rect mRect = new Rect();
     private RectF mContentRect = new RectF();
@@ -116,6 +132,31 @@ public class AtlasAvatar extends View {
         }
         update();
         return this;
+    }
+
+    /**
+     * Enable or disable showing presence information for this avatar. Presence is shown only for
+     * single user Avatars. If avatar is a cluster, presence will not be shown.
+     * <p>
+     * Default is `true`, to show presence.
+     *
+     * @param shouldShowPresence set to `true` to show presence, `false` otherwise.
+     * @return
+     */
+    public AtlasAvatar setShouldShowPresence(boolean shouldShowPresence) {
+        mShouldShowPresence = shouldShowPresence;
+        return this;
+    }
+
+    /**
+     * Returns if `shouldShowPresence` flag is enabled for this avatar.
+     * <p>
+     * Default is `true`
+     *
+     * @return `true` if `shouldShowPresence` is set to `true`, `false` otherwise.
+     */
+    public boolean getShouldShowPresence() {
+        return mShouldShowPresence;
     }
 
     /**
@@ -176,7 +217,7 @@ public class AtlasAvatar extends View {
         for (String added : diff.added) {
             Participant participant = mParticipants.get(added);
             if (participant == null) continue;
-            mInitials.put(added, Util.getInitialsFromParticipant(participant.getName()));
+            mInitials.put(added, ConversationFormatter.getInitialsFromParticipant(participant.getName()));
 
             if (participant.getAvatarUrl() == null || mPicasso == null) {
                 invalidate();
@@ -209,6 +250,9 @@ public class AtlasAvatar extends View {
         mPendingLoads.addAll(toLoad);
 
         setClusterSizes();
+
+        // Invalidate the current view, so it refreshes with new value.
+        postInvalidate();
     }
 
     @Override
@@ -233,6 +277,7 @@ public class AtlasAvatar extends View {
 
         mOuterRadius = fraction * dimension / 2f;
         mInnerRadius = mOuterRadius - (density * BORDER_SIZE_DP);
+
         mTextSize = mInnerRadius * 4f / 5f;
         mCenterX = getPaddingLeft() + mOuterRadius;
         mCenterY = getPaddingTop() + mOuterRadius;
@@ -240,6 +285,12 @@ public class AtlasAvatar extends View {
         float outerMultiSize = fraction * dimension;
         mDeltaX = (drawableWidth - outerMultiSize) / (avatarCount - 1);
         mDeltaY = (drawableHeight - outerMultiSize) / (avatarCount - 1);
+
+        // Presence
+        mPresenceOuterRadius = mOuterRadius / 3f;
+        mPresenceInnerRadius = mInnerRadius / 3f;
+        mPresenceCenterX = mCenterX + mOuterRadius - mPresenceOuterRadius;
+        mPresenceCenterY = mCenterY + mOuterRadius - mPresenceOuterRadius;
 
         synchronized (mPendingLoads) {
             if (!mPendingLoads.isEmpty()) {
@@ -289,10 +340,63 @@ public class AtlasAvatar extends View {
                 canvas.drawBitmap(bitmap, mContentRect.left, mContentRect.top, PAINT_BITMAP);
             }
 
+            // Presence
+            if (mShouldShowPresence && avatarCount == 1) { // Show only for single user avatars
+                //TODO: Move to Identities instead of Participant(custom implementation)
+//                drawPresence(canvas, entry.getKey());
+            }
+
             // Translate for next avatar
             cx += mDeltaX;
             cy += mDeltaY;
             mContentRect.offset(mDeltaX, mDeltaY);
+        }
+    }
+
+    private void drawPresence(Canvas canvas, Identity identity) {
+        Presence.PresenceStatus currentStatus = identity.getPresenceStatus();
+        if (currentStatus == null) {
+            return;
+        }
+
+        boolean drawPresence = true;
+        boolean makeCircleHollow = false;
+        switch (currentStatus) {
+            case AVAILABLE:
+                mPresencePaint.setColor(Color.rgb(0x4F, 0xBF, 0x62));
+                break;
+            case AWAY:
+                mPresencePaint.setColor(Color.rgb(0xF7, 0xCA, 0x40));
+                break;
+            case OFFLINE:
+                mPresencePaint.setColor(Color.rgb(0x99, 0x99, 0x9c));
+                makeCircleHollow = true;
+                break;
+            case INVISIBLE:
+                mPresencePaint.setColor(Color.rgb(0x50, 0xC0, 0x62));
+                makeCircleHollow = true;
+                break;
+            case BUSY:
+                mPresencePaint.setColor(Color.rgb(0xE6, 0x44, 0x3F));
+                break;
+            default:
+                drawPresence = false;
+                break;
+        }
+        if (drawPresence) {
+            // Clear background + create border
+            mBackgroundPaint.setColor(Color.WHITE);
+            mBackgroundPaint.setAntiAlias(true);
+            canvas.drawCircle(mPresenceCenterX, mPresenceCenterY, mPresenceOuterRadius, mBackgroundPaint);
+
+            // Draw Presence status
+            mPresencePaint.setAntiAlias(true);
+            canvas.drawCircle(mPresenceCenterX, mPresenceCenterY, mPresenceInnerRadius, mPresencePaint);
+
+            // Draw hollow if needed
+            if (makeCircleHollow) {
+                canvas.drawCircle(mPresenceCenterX, mPresenceCenterY, (mPresenceInnerRadius / 2f), mBackgroundPaint);
+            }
         }
     }
 

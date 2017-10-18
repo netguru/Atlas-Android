@@ -93,11 +93,11 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
 
     //Style
     private MessageStyle mMessageStyle;
-
     private RecyclerView mRecyclerView;
     private boolean mReadReceiptsEnabled = true;
 
     protected boolean mShouldShowAvatarInOneOnOneConversations;
+    protected boolean mShouldShowAvatarPresence = true;
 
     public AtlasMessagesAdapter(Context context, LayerClient layerClient, Picasso picasso, Map<String, Participant> participants) {
         mLayerClient = layerClient;
@@ -108,7 +108,6 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
         mDateFormat = android.text.format.DateFormat.getDateFormat(context);
         mTimeFormat = android.text.format.DateFormat.getTimeFormat(context);
         mDisplayMetrics = context.getResources().getDisplayMetrics();
-
         mQueryController = layerClient.newRecyclerViewController(null, null, this);
         mQueryController.setPreProcessCallback(new ListViewController.PreProcessCallback<Message>() {
             @Override
@@ -201,7 +200,24 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
      *                                                or not
      */
     public void setShouldShowAvatarInOneOnOneConversations(boolean shouldShowAvatarInOneOnOneConversations) {
-        this.mShouldShowAvatarInOneOnOneConversations = shouldShowAvatarInOneOnOneConversations;
+        mShouldShowAvatarInOneOnOneConversations = shouldShowAvatarInOneOnOneConversations;
+    }
+
+    /**
+     * @return If the Avatar for the other participant in a one on one conversation will be shown
+     * or not. Defaults to `true`.
+     */
+    public boolean getShouldShowAvatarPresence() {
+        return mShouldShowAvatarPresence;
+    }
+
+    /**
+     * @param shouldShowPresence Whether the Avatar for the other participant in a one on one
+     *                           conversation should be shown or not. Default is `true`.
+     */
+    public AtlasMessagesAdapter setShouldShowAvatarPresence(boolean shouldShowPresence) {
+        mShouldShowAvatarPresence = shouldShowPresence;
+        return this;
     }
 
     /**
@@ -287,7 +303,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
 
         CellType cellType = mCellTypesByViewType.get(viewType);
         int rootResId = cellType.mMe ? CellViewHolder.RESOURCE_ID_ME : CellViewHolder.RESOURCE_ID_THEM;
-        CellViewHolder rootViewHolder = new CellViewHolder(mLayoutInflater.inflate(rootResId, parent, false), mPicasso);
+        CellViewHolder rootViewHolder = new CellViewHolder(mLayoutInflater.inflate(rootResId, parent, false), mPicasso, mShouldShowAvatarPresence);
         rootViewHolder.mCellHolder = cellType.mCellFactory.createCellHolder(rootViewHolder.mCell, cellType.mMe, mLayoutInflater);
         rootViewHolder.mCellHolderSpecs = new AtlasCellFactory.CellHolderSpecs();
         return rootViewHolder;
@@ -324,16 +340,10 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
         if (cluster.mClusterWithPrevious == null) {
             // No previous message, so no gap
             viewHolder.mClusterSpaceGap.setVisibility(View.GONE);
-            viewHolder.mTimeGroup.setVisibility(View.GONE);
+            bindDateTimeForMessage(viewHolder, message);
         } else if (cluster.mDateBoundaryWithPrevious || cluster.mClusterWithPrevious == ClusterType.MORE_THAN_HOUR) {
             // Crossed into a new day, or > 1hr lull in conversation
-            Date receivedAt = message.getReceivedAt();
-            if (receivedAt == null) receivedAt = new Date();
-            String timeBarDayText = Util.formatTimeDay(viewHolder.mCell.getContext(), receivedAt);
-            viewHolder.mTimeGroupDay.setText(timeBarDayText);
-            String timeBarTimeText = mTimeFormat.format(receivedAt.getTime());
-            viewHolder.mTimeGroupTime.setText(" " + timeBarTimeText);
-            viewHolder.mTimeGroup.setVisibility(View.VISIBLE);
+            bindDateTimeForMessage(viewHolder, message);
             viewHolder.mClusterSpaceGap.setVisibility(View.GONE);
         } else if (cluster.mClusterWithPrevious == ClusterType.LESS_THAN_MINUTE) {
             // Same sender with < 1m gap
@@ -423,7 +433,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
             maxWidth -= avatarParams.width + avatarParams.rightMargin + avatarParams.leftMargin;
         }
         // TODO: subtract spacing rather than multiply by 0.8 to handle screen sizes more cleanly
-        int maxHeight = (int) Math.round(0.8 * mRecyclerView.getHeight());
+        int maxHeight = (int) viewHolder.mRoot.getContext().getResources().getDimension(R.dimen.atlas_messages_max_cell_height);
 
         viewHolder.mCellHolderSpecs.isMe = cellType.mMe;
         viewHolder.mCellHolderSpecs.position = position;
@@ -471,6 +481,16 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
         } else {
             viewHolder.mReceipt.setVisibility(View.GONE);
         }
+    }
+
+    private void bindDateTimeForMessage(CellViewHolder viewHolder, Message message) {
+        Date receivedAt = message.getReceivedAt();
+        if (receivedAt == null) receivedAt = new Date();
+        String timeBarDayText = Util.formatTimeDay(viewHolder.mCell.getContext(), receivedAt);
+        viewHolder.mTimeGroupDay.setText(timeBarDayText);
+        String timeBarTimeText = mTimeFormat.format(receivedAt.getTime());
+        viewHolder.mTimeGroupTime.setText(" " + timeBarTimeText);
+        viewHolder.mTimeGroup.setVisibility(View.VISIBLE);
     }
 
     @Override
@@ -719,7 +739,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
         protected AtlasCellFactory.CellHolder mCellHolder;
         protected AtlasCellFactory.CellHolderSpecs mCellHolderSpecs;
 
-        public CellViewHolder(View itemView, Picasso picasso) {
+        public CellViewHolder(View itemView, Picasso picasso, boolean shouldShowAvatarPresence) {
             super(itemView);
             mUserName = (TextView) itemView.findViewById(R.id.sender);
             mTimeGroup = itemView.findViewById(R.id.time_group);
@@ -730,7 +750,10 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
             mReceipt = (TextView) itemView.findViewById(R.id.receipt);
 
             mAvatar = ((AtlasAvatar) itemView.findViewById(R.id.avatar));
-            if (mAvatar != null) mAvatar.init(picasso);
+            if (mAvatar != null)  {
+                mAvatar.init(picasso);
+                mAvatar.setShouldShowPresence(shouldShowAvatarPresence);
+            }
         }
     }
 

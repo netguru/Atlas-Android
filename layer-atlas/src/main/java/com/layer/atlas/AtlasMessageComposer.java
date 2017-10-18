@@ -128,7 +128,9 @@ public class AtlasMessageComposer extends FrameLayout {
             @Override
             public void afterTextChanged(Editable s) {
                 if (mConversation == null || mConversation.isDeleted()) return;
-                if (s.length() > 0) {
+
+                String message = s.toString().trim();
+                if (message.length() > 0) {
                     mSendButton.setEnabled(isEnabled());
                     mConversation.send(LayerTypingIndicatorListener.TypingIndicator.STARTED);
                 } else {
@@ -427,5 +429,13 @@ public class AtlasMessageComposer extends FrameLayout {
             super(in);
             mBundle = in.readBundle();
         }
+    }
+
+    public String getEnteredText() {
+        return mMessageEditText.getText().toString();
+    }
+
+    public void setText(String textToSet) {
+        mMessageEditText.setText(textToSet);
     }
 }

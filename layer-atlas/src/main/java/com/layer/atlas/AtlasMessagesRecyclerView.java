@@ -44,6 +44,7 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
     private AtlasMessagesAdapter mAdapter;
     private LinearLayoutManager mLayoutManager;
     private ItemTouchHelper mSwipeItemTouchHelper;
+    private boolean mShouldShowAvatarsInOneOnOneConversations;
 
     private MessageStyle mMessageStyle;
 
@@ -89,6 +90,7 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
             }
         });
 
+        setShouldShowAvatarInOneOnOneConversations(mShouldShowAvatarsInOneOnOneConversations);
         return this;
     }
 
@@ -207,7 +209,6 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
      *
      * @see AtlasMessagesAdapter#getShouldShowAvatarInOneOnOneConversations()
      */
-
     public boolean getShouldShowAvatarInOneOnOneConversations() {
         return mAdapter.getShouldShowAvatarInOneOnOneConversations();
     }
@@ -217,12 +218,29 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
      *
      * @see AtlasMessagesAdapter#setShouldShowAvatarInOneOnOneConversations(boolean)
      */
-
     public AtlasMessagesRecyclerView setShouldShowAvatarInOneOnOneConversations(boolean shouldShowAvatarInOneOnOneConversations) {
         mAdapter.setShouldShowAvatarInOneOnOneConversations(shouldShowAvatarInOneOnOneConversations);
         return this;
     }
 
+    /**
+     * Convenience pass-through to this list's AtlasMessagesAdapter.
+     *
+     * @see AtlasMessagesAdapter#getShouldShowAvatarPresence()
+     */
+    public boolean getShouldShowAvatarPresence() {
+        return mAdapter.getShouldShowAvatarPresence();
+    }
+
+    /**
+     * Convenience pass-through to this list's AtlasMessagesAdapter.
+     *
+     * @see AtlasMessagesAdapter#setShouldShowAvatarPresence(boolean)
+     */
+    public AtlasMessagesRecyclerView setShouldShowAvatarPresence(boolean shouldShowAvatarPresence) {
+        mAdapter.setShouldShowAvatarPresence(shouldShowAvatarPresence);
+        return this;
+    }
 
     /**
      * Scrolls if the user is at the end
@@ -255,6 +273,7 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
         messageStyleBuilder.myBubbleColor(ta.getColor(R.styleable.AtlasMessagesRecyclerView_myBubbleColor, context.getResources().getColor(R.color.atlas_color_primary_blue)));
         messageStyleBuilder.otherBubbleColor(ta.getColor(R.styleable.AtlasMessagesRecyclerView_theirBubbleColor, context.getResources().getColor(R.color.atlas_color_primary_gray)));
 
+        mShouldShowAvatarsInOneOnOneConversations = ta.getBoolean(R.styleable.AtlasMessagesRecyclerView_shouldShowAvatarsInOneOnOneConversations, false);
         ta.recycle();
         this.mMessageStyle = messageStyleBuilder.build();
     }

@@ -57,6 +57,7 @@
 
     <string name="atlas_message_composer_hint">Message</string>
     <string name="atlas_message_composer_send_button">SEND</string>
+    <string name="attach_media">attach media</string>
 
     <string name="atlas_three_part_image_size_dialog_title">TO BE DOWNLOADED</string>
     <string name="atlas_three_part_image_size_dialog_message">Size: %1$s</string>

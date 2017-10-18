@@ -1,8 +1,8 @@
-#Message Handlers
+# Message Handlers
 
 Atlas provides a few default message handlers. If you would like to build your own, here are the steps to follow.
 
-##<a name="overview"></a>Overview
+## <a name="overview"></a>Overview
 Layer SDK supports sending messages with multiple message parts. Each message part can be as large as 2Gb. So, the underlying sdk is capable of supporting various types of message data. Currently, Atlas only supports a few of these data types. 
 
 First, Atlas determines the type of handler to use based on all the mimetypes in a message. So, you should assume a `1 to 1` mapping from a `Message` to a handler. The message handlers in Atlas is defined as `AtlasCellFactory`. 
@@ -14,7 +14,7 @@ Third, if you build a custom handler, consider how it will work in other devices
 Fourth, in order to build a new handler, you could follow the one of the existing examples like `ThreePartImage`
 
 
-##<a name="steps"></a>Steps
+## <a name="steps"></a>Steps
 
 Here are the steps involved in building a new handler
 
@@ -26,7 +26,7 @@ Here are the steps involved in building a new handler
     * Use the same order for both `AtlasConversationRecyclerView` and `AtlasMessagesRecyclerView`.
 4. If needed, add the new mime-types to `autoDownloadMimeTypes` option in `LayerClient.Options`.
 
-##<a name="gif"></a>GIF Handler Example
+## <a name="gif"></a>GIF Handler Example
 
 In case of GIF, first you have to figure out what is the best way to store and transmit data. For this discussion, 
 
@@ -34,7 +34,7 @@ In case of GIF, first you have to figure out what is the best way to store and t
 * Let's also assume you want to store a preview part (that shows the first frame?), and 
 * You need to store some form of dimension/info about the gif. For better user experience, your preview should be same dimension as original. So, you will need to store only one dimension information. This leads to something similar to ThreePartImage support we have in Atlas. When thinking about this from Atlas perspective, you need to handle 2 high level concepts. Sending a gif, and receiving a gif.
       
-###Sending a GIF
+### Sending a GIF
 
 Ensure your ThreePartGifUtils creates the 3 part gif, and it is sent. You can follow the code pattern we use for image
 
@@ -42,7 +42,7 @@ Ensure your ThreePartGifUtils creates the 3 part gif, and it is sent. You can 
 
 * Creating a three part image in utils : https://github.com/layerhq/Atlas-Android/blob/44b32948858a6ee3c9842eff8c899a88ac7f8945/layer-atlas/src/main/java/com/layer/atlas/messagetypes/threepartimage/ThreePartImageUtils.java#L62
       
-###Receiving a GIF
+### Receiving a GIF
 
 Once the GIF is sent, you have to get the GIF and handle it on the receiving side.
 			
@@ -52,7 +52,7 @@ Once the GIF is sent, you have to get the GIF and handle it on the receiving sid
 
 * Note that it doesn't download the original image data. In GIF, I assume you will add the 3rd part as well.
 
-x* Create and add ThreePartGifCellFactory to `AtlasConversationRecyclerView` and `AtlasMessagesRecyclerView`
+* Create and add ThreePartGifCellFactory to `AtlasConversationRecyclerView` and `AtlasMessagesRecyclerView`
 
 * Example : https://github.com/layerhq/Atlas-Android-Messenger/blob/80e15193bc21281ab69e0c2244ccbd61f9c87741/app/src/main/java/com/layer/messenger/MessagesListActivity.java#L165
 
@@ -60,7 +60,7 @@ x* Create and add ThreePartGifCellFactory to `AtlasConversationRecyclerView` 
 
 * Ensure ThreePartGifCellFactory matches correctly for isBindable, and provides the data in bindCellHolder methods. In bindCellHolder you need to decide what you do when the data is not downloaded. You can monitor progress of each message part individually using LayerProgressListener : https://docs.layer.com/sdk/android/richcontent#monitoring-transfer-progress
 			
-###NOTE:
+### NOTE:
 
 There are also few other options to consider. If they were not considered, please do consider them before making your decision.
 

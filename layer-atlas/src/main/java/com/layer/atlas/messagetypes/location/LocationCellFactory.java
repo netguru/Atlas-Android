@@ -20,6 +20,7 @@ import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Message;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.RequestCreator;
 import com.squareup.picasso.Transformation;
 
 import org.json.JSONException;
@@ -107,9 +108,15 @@ public class LocationCellFactory extends AtlasCellFactory<LocationCellFactory.Ce
         params.width = cellDims[0];
         params.height = cellDims[1];
         cellHolder.mProgressBar.show();
-        mPicasso.load("https://maps.googleapis.com/maps/api/staticmap?zoom=16&maptype=roadmap&scale=2&center=" + location.mLatitude + "," + location.mLongitude + "&markers=color:red%7C" + location.mLatitude + "," + location.mLongitude + "&size=" + mapWidth + "x" + mapHeight)
-                .tag(PICASSO_TAG).placeholder(PLACEHOLDER).resize(cellDims[0], cellDims[1])
-                .transform(getTransform(cellHolder.mImageView.getContext())).into(cellHolder.mImageView, new Callback() {
+        RequestCreator requestCreator = mPicasso.load("https://maps.googleapis.com/maps/api/staticmap?zoom=16&maptype=roadmap&scale=2&center=" + location.mLatitude + "," + location.mLongitude + "&markers=color:red%7C" + location.mLatitude + "," + location.mLongitude + "&size=" + mapWidth + "x" + mapHeight)
+                .tag(PICASSO_TAG).placeholder(PLACEHOLDER);
+        if (cellDims[0] > 0 && cellDims[1] > 0) {
+            requestCreator.resize(cellDims[0], cellDims[1]);
+        } else if (Log.isLoggable(Log.ERROR)) {
+            Log.e("Width or Height of image passed into LocationCellFactory is invalid");
+        }
+
+        requestCreator.transform(getTransform(cellHolder.mImageView.getContext())).into(cellHolder.mImageView, new Callback() {
             @Override
             public void onSuccess() {
                 cellHolder.mProgressBar.hide();
