@@ -37,6 +37,8 @@
         <attr name="cellUnreadBackgroundColor" />
         <attr name="dateTextColor" />
         <attr name="dateTextTypeface" />
+        <attr name="dateUnreadTextColor" />
+        <attr name="dateUnreadTextTypeface" />
         <attr name="avatarTextColor" />
         <attr name="avatarBackgroundColor" />
         <attr name="avatarBorderColor" />
@@ -64,6 +66,7 @@
         <attr name="theirTextSize" />
         <attr name="theirTextTypeface" />
         <attr name="theirTextStyle" />
+        <attr name="shouldShowAvatarsInOneOnOneConversations" format="boolean" />
     </declare-styleable>
 
     <declare-styleable name="AtlasAddressBar">
@@ -87,7 +90,7 @@
         <attr name="backgroundColor" />
     </declare-styleable>
 
-    <declare-styleable name="AtlasTypingIndicator"></declare-styleable>
+    <declare-styleable name="AtlasTypingIndicator"/>
 
 
     <!-- ####################### -->
@@ -127,6 +130,8 @@
     <attr name="cellUnreadBackgroundColor" format="color|reference" />
     <attr name="dateTextColor" format="color|reference" />
     <attr name="dateTextTypeface" format="string|reference" />
+    <attr name="dateUnreadTextColor" format="color|reference" />
+    <attr name="dateUnreadTextTypeface" format="string|reference" />
     <attr name="dateTimeTextColor" format="color|reference" />
     <attr name="dateTimeTextTypeface" format="string|reference" />
     <attr name="avatarTextColor" format="color|reference" />

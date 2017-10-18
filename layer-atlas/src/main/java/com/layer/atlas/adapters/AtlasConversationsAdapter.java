@@ -17,6 +17,7 @@ import com.layer.atlas.messagetypes.text.TextCellFactory;
 import com.layer.atlas.messagetypes.threepartimage.ThreePartImageCellFactory;
 import com.layer.atlas.support.ChatAttendeesProvider;
 import com.layer.atlas.support.Participant;
+import com.layer.atlas.util.ConversationFormatter;
 import com.layer.atlas.util.ConversationStyle;
 import com.layer.atlas.util.IdentityRecyclerViewEventListener;
 import com.layer.atlas.util.Log;
@@ -68,10 +69,17 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
 
     public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, ChatAttendeesProvider chatAttendeesProvider) {
         this(context, client, picasso, chatAttendeesProvider, null);
+    protected ConversationFormatter mConversationFormatter;
+    protected boolean mShouldShowAvatarPresence = true;
+
+    public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, ConversationFormatter conversationFormatter) {
+        this(context, client, picasso, null, conversationFormatter);
     }
 
     public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, ChatAttendeesProvider chatAttendeesProvider, Collection<String> updateAttributes) {
         this.chatAttendeesProvider = chatAttendeesProvider;
+    public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, Collection<String> updateAttributes, ConversationFormatter conversationFormatter) {
+        mConversationFormatter = conversationFormatter;
         Query<Conversation> query = Query.builder(Conversation.class)
                 /* Only show conversations we're still a member of */
                 .predicate(new Predicate(Conversation.Property.PARTICIPANT_COUNT, Predicate.Operator.GREATER_THAN, 1))
@@ -111,7 +119,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
 
     public AtlasConversationsAdapter addCellFactories(AtlasCellFactory... cellFactories) {
         if (mCellFactories == null) {
-            mCellFactories = new LinkedHashSet<AtlasCellFactory>();
+            mCellFactories = new LinkedHashSet<>();
         }
         Collections.addAll(mCellFactories, cellFactories);
         return this;
@@ -143,6 +151,27 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
 
     public void setStyle(ConversationStyle conversationStyle) {
         this.conversationStyle = conversationStyle;
+    }
+
+    public void setConversationFormatter(ConversationFormatter mConversationFormatter) {
+        this.mConversationFormatter = mConversationFormatter;
+    }
+
+    /**
+     * @return If the Avatar for the other participant in a one on one conversation will be shown
+     * or not. Defaults to `true`.
+     */
+    public boolean getShouldShowAvatarPresence() {
+        return mShouldShowAvatarPresence;
+    }
+
+    /**
+     * @param shouldShowPresence Whether the Avatar for the other participant in a one on one
+     *                           conversation should be shown or not. Default is `true`.
+     */
+    public AtlasConversationsAdapter setShouldShowAvatarPresence(boolean shouldShowPresence) {
+        mShouldShowAvatarPresence = shouldShowPresence;
+        return this;
     }
 
     private void syncInitialMessages(final int start, final int length) {
@@ -187,7 +216,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        ViewHolder viewHolder = new ViewHolder(mInflater.inflate(ViewHolder.RESOURCE_ID, parent, false), conversationStyle);
+        ViewHolder viewHolder = new ViewHolder(mInflater.inflate(ViewHolder.RESOURCE_ID, parent, false), conversationStyle, mShouldShowAvatarPresence);
         viewHolder.setClickListener(mViewHolderClickListener);
         viewHolder.mAvatarCluster
                 .init(mPicasso)
@@ -210,6 +239,8 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         mIdentityEventListener.addIdentityPosition(position, participants);
 
         viewHolder.mTitleView.setText("");
+        viewHolder.mAvatarCluster.setParticipants(participants);
+        viewHolder.mTitleView.setText(mConversationFormatter.getConversationTitle(mLayerClient, conversation, participants));
         viewHolder.applyStyle(conversation.getTotalUnreadMessageCount() > 0);
 
         if (lastMessage == null) {
@@ -398,7 +429,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         protected Conversation mConversation;
         protected OnClickListener mClickListener;
 
-        public ViewHolder(View itemView, ConversationStyle conversationStyle) {
+        public ViewHolder(View itemView, ConversationStyle conversationStyle,  boolean shouldShowAvatarPresence) {
             super(itemView);
             itemView.setOnClickListener(this);
             itemView.setOnLongClickListener(this);
@@ -409,15 +440,16 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             mMessageView = (TextView) itemView.findViewById(R.id.last_message);
             mTimeView = (TextView) itemView.findViewById(R.id.time);
             itemView.setBackgroundColor(conversationStyle.getCellBackgroundColor());
+            mAvatarCluster.setShouldShowPresence(shouldShowAvatarPresence);
         }
 
         public void applyStyle(boolean unread) {
             mTitleView.setTextColor(unread ? conversationStyle.getTitleUnreadTextColor() : conversationStyle.getTitleTextColor());
             mTitleView.setTypeface(unread ? conversationStyle.getTitleUnreadTextTypeface() : conversationStyle.getTitleTextTypeface(), unread ? conversationStyle.getTitleUnreadTextStyle() : conversationStyle.getTitleTextStyle());
-            mMessageView.setTextColor(unread ? conversationStyle.getSubtitleTextColor() : conversationStyle.getSubtitleTextColor());
+            mMessageView.setTextColor(unread ? conversationStyle.getSubtitleUnreadTextColor() : conversationStyle.getSubtitleTextColor());
             mMessageView.setTypeface(unread ? conversationStyle.getSubtitleUnreadTextTypeface() : conversationStyle.getSubtitleTextTypeface(), unread ? conversationStyle.getSubtitleUnreadTextStyle() : conversationStyle.getSubtitleTextStyle());
-            mTimeView.setTextColor(conversationStyle.getDateTextColor());
-            mTimeView.setTypeface(conversationStyle.getDateTextTypeface());
+            mTimeView.setTextColor(unread ? conversationStyle.getDateUnreadTextColor() : conversationStyle.getDateTextColor());
+            mTimeView.setTypeface(unread ? conversationStyle.getDateUnreadTextTypeface() : conversationStyle.getDateTextTypeface());
         }
 
         protected ViewHolder setClickListener(OnClickListener clickListener) {

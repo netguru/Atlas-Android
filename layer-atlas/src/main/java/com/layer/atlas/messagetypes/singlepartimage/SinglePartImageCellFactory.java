@@ -15,6 +15,7 @@ import android.widget.ImageView;
 
 import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
+import com.layer.atlas.util.Log;
 import com.layer.atlas.util.imagepopup.AtlasImagePopupActivity;
 import com.layer.atlas.util.picasso.transformations.RoundedTransform;
 import com.layer.sdk.LayerClient;
@@ -22,6 +23,7 @@ import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.MessagePart;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.RequestCreator;
 import com.squareup.picasso.Transformation;
 
 /**
@@ -61,9 +63,17 @@ public class SinglePartImageCellFactory extends AtlasCellFactory<SinglePartImage
         cellHolder.mImageView.setTag(index);
         cellHolder.mImageView.setOnClickListener(this);
         cellHolder.mProgressBar.show();
-        mPicasso.load(index.mId).tag(PICASSO_TAG).placeholder(PLACEHOLDER)
-                .centerInside().resize(specs.maxWidth, specs.maxHeight).onlyScaleDown()
-                .transform(getTransform(cellHolder.mImageView.getContext())).into(cellHolder.mImageView, new Callback() {
+        RequestCreator requestCreator = mPicasso.load(index.mId).tag(PICASSO_TAG).placeholder(PLACEHOLDER)
+                .centerInside();
+        if (specs.maxWidth > 0 && specs.maxHeight > 0) {
+            requestCreator.resize(specs.maxWidth, specs.maxHeight);
+        } else if (Log.isLoggable(Log.ERROR)) {
+            Log.e("Width or Height of image passed into SinglePartImageCellFactory.bindCellHolder should be > 0");
+        }
+        requestCreator.onlyScaleDown()
+                .transform(getTransform(cellHolder.mImageView.getContext()));
+
+        requestCreator.into(cellHolder.mImageView, new Callback() {
             @Override
             public void onSuccess() {
                 cellHolder.mProgressBar.hide();

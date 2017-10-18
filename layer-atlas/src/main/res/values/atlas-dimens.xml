@@ -87,4 +87,8 @@
     <dimen name="atlas_participant_filter_min_width">32dp</dimen>
     <dimen name="atlas_selected_participant_group_max_height">96dp</dimen>
 
+    <!-- ####################################################################################### -->
+    <!-- # Recycler Maximum Cell Height Dimension                                             # -->
+    <!-- ####################################################################################### -->
+    <dimen name="atlas_messages_max_cell_height">370dp</dimen>
 </resources>

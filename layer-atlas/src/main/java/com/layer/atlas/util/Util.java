@@ -53,7 +53,7 @@ public class Util {
     private static final String METADATA_KEY_CONVERSATION_TITLE = "conversationName";
     private static final String METADATA_KEY_CONVERSATION_TITLE_LEGACY = "title";
     private static final int TIME_HOURS_24 = 24 * 60 * 60 * 1000;
-    private static final SimpleDateFormat DAY_OF_WEEK = new SimpleDateFormat("EEE, LLL dd,", Locale.US);
+    private static final SimpleDateFormat DAY_OF_WEEK = new SimpleDateFormat("EEE, LLL dd,", Locale.getDefault());
 
     /**
      * Returns the app version name.

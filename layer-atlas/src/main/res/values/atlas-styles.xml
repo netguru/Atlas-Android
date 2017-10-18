@@ -34,6 +34,8 @@
         <item name="cellUnreadBackgroundColor">@android:color/transparent</item>
         <item name="dateTextColor">@color/atlas_text_blue</item>
         <item name="dateTextTypeface">normal</item>
+        <item name="dateUnreadTextColor">@color/atlas_text_blue</item>
+        <item name="dateUnreadTextTypeface">normal</item>
         <item name="avatarTextColor">@color/atlas_text_black</item>
         <item name="avatarBackgroundColor">@color/atlas_avatar_background</item>
         <item name="avatarBorderColor">@color/atlas_avatar_border</item>

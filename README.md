@@ -63,7 +63,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.layer.atlas:layer-atlas:0.4.6'
+    compile 'com.layer.atlas:layer-atlas:0.4.15'
 }
 ```
 
@@ -76,7 +76,7 @@ Atlas is divided into five basic `View` components, typically presented on a scr
 
 ### <a name="conversations"></a>Conversations
 
-####AtlasConversationsRecyclerView
+#### AtlasConversationsRecyclerView
 
 The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasConversationsRecyclerView.java">AtlasConversationsRecyclerView</a> is a list of Conversations.
 
@@ -157,6 +157,7 @@ The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasMessageComposer.java
 ```java
 messageComposer = ((AtlasMessageComposer) findViewById(R.id.message_composer))
 	.init(layerClient)
+        .setConversation(conversation)
 	.setTextSender(new TextSender())
 	.addAttachmentSenders(
 		new CameraSender("Camera", R.drawable.ic_photo_camera_white_24dp, this, getApplicationContext().getPackageName() + ".file_provider"),
