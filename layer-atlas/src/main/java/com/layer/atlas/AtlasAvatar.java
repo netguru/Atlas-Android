@@ -8,14 +8,13 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.layer.atlas.support.Participant;
 import com.layer.atlas.util.AvatarStyle;
-import com.layer.atlas.util.ConversationFormatter;
+import com.layer.atlas.util.Util;
 import com.layer.atlas.util.picasso.transformations.CircleTransform;
 import com.layer.sdk.messaging.Identity;
 import com.layer.sdk.messaging.Presence;
@@ -23,7 +22,9 @@ import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +34,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * AtlasAvatar can be used to show information about one user, or as a cluster of multiple users.
- * <p>
+ *
  * AtlasAvatar uses Picasso to render the avatar image. So, you need to init
  */
 public class AtlasAvatar extends View {
@@ -67,12 +68,12 @@ public class AtlasAvatar extends View {
     }
 
     private Picasso mPicasso;
-    private Map<String, Participant> mParticipants = new HashMap<>();
+    private Set<Identity> mParticipants = new LinkedHashSet<>();
 
     // Initials and Picasso image targets by user ID
-    private final Map<String, ImageTarget> mImageTargets = new HashMap<>();
-    private final Map<String, String> mInitials = new HashMap<>();
-    private final List<ImageTarget> mPendingLoads = new ArrayList<>();
+    private final Map<Identity, ImageTarget> mImageTargets = new HashMap<>();
+    private final Map<Identity, String> mInitials = new HashMap<>();
+    private final List<ImageTarget> mPendingLoads = new ArrayList<ImageTarget>();
 
     // Sizing set in setClusterSizes() and used in onDraw()
     private float mOuterRadius;
@@ -125,11 +126,9 @@ public class AtlasAvatar extends View {
         return this;
     }
 
-    public AtlasAvatar setParticipant(Participant participant) {
+    public AtlasAvatar setParticipants(Identity... participants) {
         mParticipants.clear();
-        if (participant != null) {
-            mParticipants.put(participant.getId(), participant);
-        }
+        mParticipants.addAll(Arrays.asList(participants));
         update();
         return this;
     }
@@ -137,7 +136,7 @@ public class AtlasAvatar extends View {
     /**
      * Enable or disable showing presence information for this avatar. Presence is shown only for
      * single user Avatars. If avatar is a cluster, presence will not be shown.
-     * <p>
+     *
      * Default is `true`, to show presence.
      *
      * @param shouldShowPresence set to `true` to show presence, `false` otherwise.
@@ -150,7 +149,7 @@ public class AtlasAvatar extends View {
 
     /**
      * Returns if `shouldShowPresence` flag is enabled for this avatar.
-     * <p>
+     *
      * Default is `true`
      *
      * @return `true` if `shouldShowPresence` is set to `true`, `false` otherwise.
@@ -162,50 +161,47 @@ public class AtlasAvatar extends View {
     /**
      * Should be called from UI thread.
      */
-    public AtlasAvatar setParticipants(Map<String, Participant> participants) {
+    public AtlasAvatar setParticipants(Set<Identity> participants) {
         mParticipants.clear();
-        mParticipants.putAll(participants);
+        mParticipants.addAll(participants);
         update();
         return this;
     }
 
-    public Map<String, Participant> getParticipants() {
-        return new HashMap<>(mParticipants);
+    public Set<Identity> getParticipants() {
+        return new LinkedHashSet<>(mParticipants);
     }
 
     private void update() {
         // Limit to MAX_AVATARS valid avatars, prioritizing participants with avatars.
         if (mParticipants.size() > MAX_AVATARS) {
-            Queue<Participant> withAvatars = new LinkedList<>();
-            Queue<Participant> withoutAvatars = new LinkedList<>();
-            for (String participantId : mParticipants.keySet()) {
-                Participant participant = mParticipants.get(participantId);
+            Queue<Identity> withAvatars = new LinkedList<>();
+            Queue<Identity> withoutAvatars = new LinkedList<>();
+            for (Identity participant : mParticipants) {
                 if (participant == null) continue;
-                if (participant.getAvatarUrl() != null || mPicasso != null) {
+                if (!TextUtils.isEmpty(participant.getAvatarImageUrl())) {
                     withAvatars.add(participant);
                 } else {
                     withoutAvatars.add(participant);
                 }
             }
 
-            mParticipants = new HashMap<>();
+            mParticipants = new LinkedHashSet<>();
             int numWithout = Math.min(MAX_AVATARS - withAvatars.size(), withoutAvatars.size());
             for (int i = 0; i < numWithout; i++) {
-                Participant participant = withoutAvatars.remove();
-                mParticipants.put(participant.getId(), participant);
+                mParticipants.add(withoutAvatars.remove());
             }
             int numWith = Math.min(MAX_AVATARS, withAvatars.size());
             for (int i = 0; i < numWith; i++) {
-                Participant participant = withAvatars.remove();
-                mParticipants.put(participant.getId(), participant);
+                mParticipants.add(withAvatars.remove());
             }
         }
 
-        Diff diff = diff(mInitials.keySet(), mParticipants.keySet());
-        List<ImageTarget> toLoad = new ArrayList<>(mParticipants.size());
+        Diff diff = diff(mInitials.keySet(), mParticipants);
+        List<ImageTarget> toLoad = new ArrayList<>();
 
-        List<ImageTarget> recyclableTargets = new ArrayList<>();
-        for (String removed : diff.removed) {
+        List<ImageTarget> recyclableTargets = new ArrayList<ImageTarget>();
+        for (Identity removed : diff.removed) {
             mInitials.remove(removed);
             ImageTarget target = mImageTargets.remove(removed);
             if (target != null) {
@@ -214,31 +210,27 @@ public class AtlasAvatar extends View {
             }
         }
 
-        for (String added : diff.added) {
-            Participant participant = mParticipants.get(added);
-            if (participant == null) continue;
-            mInitials.put(added, ConversationFormatter.getInitialsFromParticipant(participant.getName()));
+        for (Identity added : diff.added) {
+            if (added == null) return;
+            mInitials.put(added, Util.getInitials(added));
 
-            if (participant.getAvatarUrl() == null || mPicasso == null) {
-                invalidate();
-                continue;
-            }
             final ImageTarget target;
             if (recyclableTargets.isEmpty()) {
                 target = new ImageTarget(this);
             } else {
                 target = recyclableTargets.remove(0);
             }
-            target.setUrl(participant.getAvatarUrl());
+            target.setUrl(added.getAvatarImageUrl());
             mImageTargets.put(added, target);
             toLoad.add(target);
         }
 
         // Cancel existing in case the size or anything else changed.
         // TODO: make caching intelligent wrt sizing
-        for (String existing : diff.existing) {
-            Participant participant = mParticipants.get(existing);
-            if (participant == null) continue;
+        for (Identity existing : diff.existing) {
+            if (existing == null) continue;
+            mInitials.put(existing, Util.getInitials(existing));
+
             ImageTarget existingTarget = mImageTargets.get(existing);
             mPicasso.cancelRequest(existingTarget);
             toLoad.add(existingTarget);
@@ -296,13 +288,17 @@ public class AtlasAvatar extends View {
             if (!mPendingLoads.isEmpty()) {
                 int size = Math.round(hasBorder ? (mInnerRadius * 2f) : (mOuterRadius * 2f));
                 for (ImageTarget imageTarget : mPendingLoads) {
-                    if (imageTarget != null) {
-                        mPicasso.load(imageTarget.getUrl())
-                                .tag(AtlasAvatar.TAG).noPlaceholder().noFade()
-                                .centerCrop().resize(size, size)
-                                .transform((avatarCount > 1) ? MULTI_TRANSFORM : SINGLE_TRANSFORM)
-                                .into(imageTarget);
+                    String targetUrl = imageTarget.getUrl();
+                    // Handle empty paths just like null paths. This ensures empty paths will go
+                    // through the normal Picasso flow and the bitmap is set.
+                    if (targetUrl != null && targetUrl.trim().length() == 0) {
+                        targetUrl = null;
                     }
+                    mPicasso.load(targetUrl)
+                            .tag(AtlasAvatar.TAG).noPlaceholder().noFade()
+                            .centerCrop().resize(size, size)
+                            .transform((avatarCount > 1) ? MULTI_TRANSFORM : SINGLE_TRANSFORM)
+                            .into(imageTarget);
                 }
                 mPendingLoads.clear();
             }
@@ -323,7 +319,7 @@ public class AtlasAvatar extends View {
         float cx = mCenterX;
         float cy = mCenterY;
         mContentRect.set(cx - contentRadius, cy - contentRadius, cx + contentRadius, cy + contentRadius);
-        for (Map.Entry<String, String> entry : mInitials.entrySet()) {
+        for (Map.Entry<Identity, String> entry : mInitials.entrySet()) {
             // Border / background
             if (hasBorder) canvas.drawCircle(cx, cy, mOuterRadius, mPaintBorder);
 
@@ -342,8 +338,7 @@ public class AtlasAvatar extends View {
 
             // Presence
             if (mShouldShowPresence && avatarCount == 1) { // Show only for single user avatars
-                //TODO: Move to Identities instead of Participant(custom implementation)
-//                drawPresence(canvas, entry.getKey());
+                drawPresence(canvas, entry.getKey());
             }
 
             // Translate for next avatar
@@ -404,7 +399,7 @@ public class AtlasAvatar extends View {
         private final static AtomicLong sCounter = new AtomicLong(0);
         private final long mId;
         private final AtlasAvatar mCluster;
-        private Uri mUrl;
+        private String mUrl;
         private Bitmap mBitmap;
 
         public ImageTarget(AtlasAvatar cluster) {
@@ -412,12 +407,12 @@ public class AtlasAvatar extends View {
             mCluster = cluster;
         }
 
-        public ImageTarget setUrl(Uri url) {
+        public ImageTarget setUrl(String url) {
             mUrl = url;
             return this;
         }
 
-        public Uri getUrl() {
+        public String getUrl() {
             return mUrl;
         }
 
@@ -456,16 +451,16 @@ public class AtlasAvatar extends View {
         }
     }
 
-    private static Diff diff(Set<String> oldSet, Set<String> newSet) {
+    private static Diff diff(Set<Identity> oldSet, Set<Identity> newSet) {
         Diff diff = new Diff();
-        for (String old : oldSet) {
+        for (Identity old : oldSet) {
             if (newSet.contains(old)) {
                 diff.existing.add(old);
             } else {
                 diff.removed.add(old);
             }
         }
-        for (String newItem : newSet) {
+        for (Identity newItem : newSet) {
             if (!oldSet.contains(newItem)) {
                 diff.added.add(newItem);
             }
@@ -474,8 +469,8 @@ public class AtlasAvatar extends View {
     }
 
     private static class Diff {
-        public List<String> existing = new ArrayList<>();
-        public List<String> added = new ArrayList<>();
-        public List<String> removed = new ArrayList<>();
+        public List<Identity> existing = new ArrayList<>();
+        public List<Identity> added = new ArrayList<>();
+        public List<Identity> removed = new ArrayList<>();
     }
 }

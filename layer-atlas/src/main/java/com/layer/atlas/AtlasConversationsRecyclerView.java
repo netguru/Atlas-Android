@@ -27,7 +27,6 @@ import android.view.View;
 
 import com.layer.atlas.adapters.AtlasConversationsAdapter;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
-import com.layer.atlas.support.ChatAttendeesProvider;
 import com.layer.atlas.util.AvatarStyle;
 import com.layer.atlas.util.ConversationFormatter;
 import com.layer.atlas.util.ConversationStyle;
@@ -56,8 +55,7 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         super(context);
     }
 
-    public AtlasConversationsRecyclerView init(LayerClient layerClient, Picasso picasso,
-                                               ChatAttendeesProvider chatAttendeesProvider, ConversationFormatter conversationFormatter) {
+    public AtlasConversationsRecyclerView init(LayerClient layerClient, Picasso picasso, ConversationFormatter conversationFormatter) {
         LinearLayoutManager manager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
         manager.setStackFromEnd(false);
         setLayoutManager(manager);
@@ -65,7 +63,7 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         // Don't flash items when changing content
         setItemAnimator(new NoChangeAnimator());
 
-        mAdapter = new AtlasConversationsAdapter(getContext(), layerClient, picasso, chatAttendeesProvider, conversationFormatter);
+        mAdapter = new AtlasConversationsAdapter(getContext(), layerClient, picasso, conversationFormatter);
         mAdapter.setStyle(conversationStyle);
         super.setAdapter(mAdapter);
         refresh();
@@ -73,8 +71,8 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         return this;
     }
 
-    public AtlasConversationsRecyclerView init(LayerClient layerClient, Picasso picasso, ChatAttendeesProvider chatAttendeesProvider) {
-        return init(layerClient, picasso, chatAttendeesProvider, new ConversationFormatter());
+    public AtlasConversationsRecyclerView init(LayerClient layerClient, Picasso picasso) {
+        return init(layerClient, picasso, new ConversationFormatter());
     }
 
     @Override
@@ -82,7 +80,7 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         throw new RuntimeException("AtlasConversationsRecyclerView sets its own Adapter");
     }
 
-    public AtlasConversationsRecyclerView addCellFactories(AtlasCellFactory... cellFactories) {
+    public AtlasConversationsRecyclerView addCellFactories (AtlasCellFactory... cellFactories) {
         mAdapter.addCellFactories(cellFactories);
         return this;
     }

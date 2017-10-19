@@ -18,6 +18,8 @@ import android.text.TextUtils;
 import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AttachmentSender;
 import com.layer.atlas.util.Log;
+import com.layer.atlas.util.Util;
+import com.layer.sdk.messaging.Identity;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.PushNotificationPayload;
 
@@ -127,7 +129,8 @@ public class CameraSender extends AttachmentSender {
             if (Log.isPerfLoggable()) {
                 Log.perf("CameraSender is attempting to send a message");
             }
-            String myName = mUserName == null ? "" : mUserName;
+            Identity me = getLayerClient().getAuthenticatedUser();
+            String myName = me == null ? "" : Util.getDisplayName(me);
             Message message = ThreePartImageUtils.newThreePartImageMessage(activity, getLayerClient(), new File(mPhotoFilePath.get()));
 
             PushNotificationPayload payload = new PushNotificationPayload.Builder()

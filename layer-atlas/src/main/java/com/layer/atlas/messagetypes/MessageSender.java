@@ -16,7 +16,6 @@ public abstract class MessageSender {
 
     private Context mContext;
     private LayerClient mLayerClient;
-    protected String mUserName;
 
     public void init(Context context, LayerClient layerClient) {
         mContext = context;
@@ -28,9 +27,8 @@ public abstract class MessageSender {
      *
      * @param conversation The Conversation to send generated Messages.
      */
-    public MessageSender setConversation(Conversation conversation, String userName) {
+    public MessageSender setConversation(Conversation conversation) {
         mConversation = conversation;
-        mUserName = userName;
         return this;
     }
 
@@ -82,10 +80,10 @@ public abstract class MessageSender {
          * sending the Message, or `false` to prevent sending.  If sending continues, track updates
          * to the Message with a LayerChangeEventListener.
          *
-         * @param sender       The MessageSender reporting Message creation.
-         * @param layerClient  The LayerClient doing the sending.
-         * @param conversation The Conversation the new Message will be sent to.
-         * @param message      The new Message created.
+         * @param sender              The MessageSender reporting Message creation.
+         * @param layerClient         The LayerClient doing the sending.
+         * @param conversation        The Conversation the new Message will be sent to.
+         * @param message             The new Message created.
          * @return `true` to continue sending, or `false` to prevent sending
          * @see com.layer.sdk.messaging.Message
          * @see com.layer.sdk.listeners.LayerChangeEventListener
