@@ -48,7 +48,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-//TODO: This should search in webSummit local db instead of Layer db with Identity
 public class AtlasAddressBar extends LinearLayout {
     public static final int MAX_PARTICIPANTS = 25;
 
