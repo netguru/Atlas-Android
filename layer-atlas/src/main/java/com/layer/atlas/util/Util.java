@@ -122,7 +122,8 @@ public class Util {
             } else if (!TextUtils.isEmpty(last)) {
                 return last;
             } else {
-                return identity.getUserId();
+//                return identity.getUserId();//Id shouldn't be displayed anywhere!!!
+                return "";
             }
         }
         return identity.getDisplayName();
