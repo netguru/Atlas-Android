@@ -24,7 +24,6 @@ import android.text.TextUtils;
 
 import com.layer.atlas.BuildConfig;
 import com.layer.atlas.R;
-import com.layer.atlas.support.Participant;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.exceptions.LayerException;
 import com.layer.sdk.listeners.LayerAuthenticationListener;
@@ -39,10 +38,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -86,14 +83,6 @@ public class Util {
         }
     }
 
-    public static Map<String, Participant> createParticipantsMap(List<Participant> participants) {
-        Map<String, Participant> participantMap = new HashMap<>(participants.size());
-        for (Participant participant : participants) {
-            participantMap.put(participant.getId(), participant);
-        }
-        return participantMap;
-    }
-
     public static List<String> getIdsFromIdentities(Collection<Identity> identityHashSet) {
         List<String> isd = new ArrayList<>(identityHashSet.size());
         for (Identity identity : identityHashSet) {
@@ -133,7 +122,8 @@ public class Util {
             } else if (!TextUtils.isEmpty(last)) {
                 return last;
             } else {
-                return identity.getUserId();
+//                return identity.getUserId();//Id shouldn't be displayed anywhere!!!
+                return "";
             }
         }
         return identity.getDisplayName();

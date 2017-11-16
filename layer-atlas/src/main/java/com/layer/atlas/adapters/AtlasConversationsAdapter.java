@@ -15,8 +15,6 @@ import com.layer.atlas.messagetypes.location.LocationCellFactory;
 import com.layer.atlas.messagetypes.singlepartimage.SinglePartImageCellFactory;
 import com.layer.atlas.messagetypes.text.TextCellFactory;
 import com.layer.atlas.messagetypes.threepartimage.ThreePartImageCellFactory;
-import com.layer.atlas.support.ChatAttendeesProvider;
-import com.layer.atlas.support.Participant;
 import com.layer.atlas.util.ConversationFormatter;
 import com.layer.atlas.util.ConversationStyle;
 import com.layer.atlas.util.IdentityRecyclerViewEventListener;
@@ -37,26 +35,14 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
-import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.schedulers.Schedulers;
-import rx.subscriptions.CompositeSubscription;
-
-//TODO: Check what's changed!!!
 public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConversationsAdapter.ViewHolder> implements AtlasBaseAdapter<Conversation>, RecyclerViewController.Callback {
     protected final LayerClient mLayerClient;
     protected final Picasso mPicasso;
     private final RecyclerViewController<Conversation> mQueryController;
     private final LayoutInflater mInflater;
     private long mInitialHistory = 0;
-
-    //Added to work with participant object
-    private final ChatAttendeesProvider chatAttendeesProvider;
-    private final CompositeSubscription subscriptions = new CompositeSubscription();
 
     private OnConversationClickListener mConversationClickListener;
     private ViewHolder.OnClickListener mViewHolderClickListener;
@@ -72,16 +58,11 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     protected ConversationFormatter mConversationFormatter;
     protected boolean mShouldShowAvatarPresence = true;
 
-
-    public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso,
-                                     ChatAttendeesProvider chatAttendeesProvider, ConversationFormatter conversationFormatter) {
-        this(context, client, picasso, chatAttendeesProvider, null, conversationFormatter);
+    public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, ConversationFormatter conversationFormatter) {
+        this(context, client, picasso, null, conversationFormatter);
     }
 
-    public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso,
-                                     ChatAttendeesProvider chatAttendeesProvider,
-                                     Collection<String> updateAttributes, ConversationFormatter conversationFormatter) {
-        this.chatAttendeesProvider = chatAttendeesProvider;
+    public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, Collection<String> updateAttributes, ConversationFormatter conversationFormatter) {
         mConversationFormatter = conversationFormatter;
         Query<Conversation> query = Query.builder(Conversation.class)
                 /* Only show conversations we're still a member of */
@@ -139,7 +120,6 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
      * Performs cleanup when the Activity/Fragment using the adapter is destroyed.
      */
     public void onDestroy() {
-        subscriptions.clear();
         mLayerClient.unregisterEventListener(mIdentityEventListener);
     }
 
@@ -228,10 +208,10 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     }
 
     @Override
-    public void onBindViewHolder(final ViewHolder viewHolder, int position) {
+    public void onBindViewHolder(ViewHolder viewHolder, int position) {
         mQueryController.updateBoundPosition(position);
-        final Conversation conversation = mQueryController.getItem(position);
-        final Message lastMessage = conversation.getLastMessage();
+        Conversation conversation = mQueryController.getItem(position);
+        Message lastMessage = conversation.getLastMessage();
         Context context = viewHolder.itemView.getContext();
 
         viewHolder.setConversation(conversation);
@@ -241,7 +221,8 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         // Add the position to the positions map for Identity updates
         mIdentityEventListener.addIdentityPosition(position, participants);
 
-        viewHolder.mTitleView.setText("");
+        viewHolder.mAvatarCluster.setParticipants(participants);
+        viewHolder.mTitleView.setText(mConversationFormatter.getConversationTitle(mLayerClient, conversation, participants));
         viewHolder.applyStyle(conversation.getTotalUnreadMessageCount() > 0);
 
         if (lastMessage == null) {
@@ -255,27 +236,6 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
                 viewHolder.mTimeView.setText(Util.formatTime(context, lastMessage.getReceivedAt(), mTimeFormat, mDateFormat));
             }
         }
-
-        List<String> ids = Util.getIdsFromIdentities(participants);
-        Subscription participantsSingleSubscription = chatAttendeesProvider.getParticipants(ids).
-                subscribeOn(Schedulers.io()).
-                observeOn(AndroidSchedulers.mainThread()).
-                subscribe(new Action1<List<Participant>>() {
-                    @Override
-                    public void call(List<Participant> participants) {
-                        if (!participants.isEmpty()) {
-                            viewHolder.mTitleView.setText(ConversationFormatter.getConversationTitle(participants, conversation));
-                            //TODO: What about PRESENCE? ? ?
-                            viewHolder.mAvatarCluster.setParticipants(Util.createParticipantsMap(participants));
-                        }
-                    }
-                }, new Action1<Throwable>() {
-                    @Override
-                    public void call(Throwable throwable) {
-                        Log.d("Error during participants downloading", throwable);
-                    }
-                });
-        subscriptions.add(participantsSingleSubscription);
     }
 
     @Override
@@ -431,7 +391,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         protected Conversation mConversation;
         protected OnClickListener mClickListener;
 
-        public ViewHolder(View itemView, ConversationStyle conversationStyle, boolean shouldShowAvatarPresence) {
+        public ViewHolder(View itemView, ConversationStyle conversationStyle,  boolean shouldShowAvatarPresence) {
             super(itemView);
             itemView.setOnClickListener(this);
             itemView.setOnLongClickListener(this);

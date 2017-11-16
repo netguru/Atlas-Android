@@ -27,7 +27,6 @@ import android.view.View;
 import com.layer.atlas.adapters.AtlasMessagesAdapter;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
 import com.layer.atlas.messagetypes.MessageStyle;
-import com.layer.atlas.support.Participant;
 import com.layer.atlas.util.itemanimators.NoChangeAnimator;
 import com.layer.atlas.util.views.SwipeableItem;
 import com.layer.sdk.LayerClient;
@@ -37,8 +36,6 @@ import com.layer.sdk.query.Predicate;
 import com.layer.sdk.query.Query;
 import com.layer.sdk.query.SortDescriptor;
 import com.squareup.picasso.Picasso;
-
-import java.util.Map;
 
 public class AtlasMessagesRecyclerView extends RecyclerView {
     private AtlasMessagesAdapter mAdapter;
@@ -61,13 +58,13 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
         super(context);
     }
 
-    public AtlasMessagesRecyclerView init(LayerClient layerClient, Picasso picasso, Map<String, Participant> participantMap) {
+    public AtlasMessagesRecyclerView init(LayerClient layerClient, Picasso picasso) {
         mLayoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
         mLayoutManager.setStackFromEnd(true);
         setLayoutManager(mLayoutManager);
 
         // Create an adapter that auto-scrolls if we're already at the bottom
-        mAdapter = new AtlasMessagesAdapter(getContext(), layerClient, picasso, participantMap)
+        mAdapter = new AtlasMessagesAdapter(getContext(), layerClient, picasso)
                 .setRecyclerView(this)
                 .setOnMessageAppendListener(new AtlasMessagesAdapter.OnMessageAppendListener() {
                     @Override
@@ -97,10 +94,6 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
     @Override
     public void setAdapter(Adapter adapter) {
         throw new RuntimeException("AtlasMessagesRecyclerView sets its own Adapter");
-    }
-
-    public void setParticipants(Map<String, Participant> participantMap) {
-        mAdapter.setParticipants(participantMap);
     }
 
     /**
