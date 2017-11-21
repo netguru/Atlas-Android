@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright 2015 Layer. All rights reserved.
+<?xml version="1.0" encoding="utf-8"?><!-- Copyright 2015 Layer. All rights reserved.
     
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -46,26 +45,14 @@
         android:duplicateParentState="true"
         android:orientation="horizontal">
 
-        <com.layer.atlas.AtlasAvatar
-            android:id="@+id/avatar"
-            android:layout_width="@dimen/atlas_avatar_item_single"
-            android:layout_height="@dimen/atlas_avatar_item_single"
-            android:layout_margin="@dimen/atlas_padding_normal"/>
+        <!--Avatar image!-->
+        <include layout="@layout/netguru_avatar" />
 
         <!-- right content part -->
         <FrameLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1"
-            >
-
-            <!-- delimiter -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_gravity="bottom"
-                android:background="@color/atlas_item_divider"
-                />
+            android:layout_weight="1">
 
             <LinearLayout
                 android:layout_width="match_parent"

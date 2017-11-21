@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <!--Unread message status-->
+    <ImageView
+        android:id="@+id/unread_status"
+        android:layout_width="@dimen/atlas_padding_normal"
+        android:layout_height="wrap_content"
+        android:contentDescription="@null"
+        android:src="@drawable/netguru_unread_circle"
+        android:visibility="invisible" />
+
+    <!--Avatar image-->
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clipChildren="false">
+
+        <!--Avatar-->
+        <ImageView
+            android:id="@+id/avatar"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginBottom="@dimen/atlas_padding_normal"
+            android:layout_marginEnd="@dimen/atlas_padding_normal"
+            android:layout_marginTop="@dimen/atlas_padding_normal"
+            android:contentDescription="@null"
+            tools:ignore="RtlCompat" />
+
+        <!--Presence status-->
+        <ImageView
+            android:id="@+id/presence_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@+id/avatar"
+            android:layout_alignEnd="@+id/avatar"
+            android:layout_marginBottom="-6dp"
+            android:layout_marginEnd="-6dp"
+            android:contentDescription="@null"
+            android:src="@drawable/netguru_presence_not_available"
+            tools:ignore="RtlCompat" />
+    </RelativeLayout>
+</LinearLayout>
