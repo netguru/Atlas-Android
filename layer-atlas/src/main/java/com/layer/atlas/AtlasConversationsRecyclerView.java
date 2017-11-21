@@ -19,6 +19,7 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.support.annotation.DrawableRes;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
@@ -80,7 +81,7 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         throw new RuntimeException("AtlasConversationsRecyclerView sets its own Adapter");
     }
 
-    public AtlasConversationsRecyclerView addCellFactories (AtlasCellFactory... cellFactories) {
+    public AtlasConversationsRecyclerView addCellFactories(AtlasCellFactory... cellFactories) {
         mAdapter.addCellFactories(cellFactories);
         return this;
     }
@@ -170,6 +171,12 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         conversationStyle.setDateTextTypeface(dateTypeface);
         conversationStyle.setDateUnreadTextTypeface(dateUnreadTypeface);
         return this;
+    }
+
+    public void setAvatarPlaceholder(@DrawableRes int avatarPlaceholder) {
+        if (mAdapter != null) {
+            mAdapter.setAvatarPlaceholder(avatarPlaceholder);
+        }
     }
 
     private void parseStyle(Context context, AttributeSet attrs, int defStyle) {
