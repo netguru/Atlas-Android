@@ -4,7 +4,6 @@ import android.content.Context;
 import android.support.annotation.DrawableRes;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
-import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -253,23 +252,15 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             if (participant == null) {
                 return;
             }
-            if (TextUtils.isEmpty(participant.getAvatarImageUrl())) {
-                if (avatarPlaceholder != null) {
-                    mPicasso.load(avatarPlaceholder).fit()
-                            .centerInside()
-                            .into(viewHolder.mAvatar);
-                }
-            } else {
-                RequestCreator avatarRequestCreator = mPicasso.load(participant.getAvatarImageUrl());
-                if (avatarPlaceholder != null) {
-                    avatarRequestCreator
-                            .error(avatarPlaceholder)
-                            .placeholder(avatarPlaceholder);
-                }
-                avatarRequestCreator.fit()
-                        .centerInside()
-                        .into(viewHolder.mAvatar);
+            RequestCreator avatarRequestCreator = mPicasso.load(participant.getAvatarImageUrl());
+            if (avatarPlaceholder != null) {
+                avatarRequestCreator
+                        .error(avatarPlaceholder)
+                        .placeholder(avatarPlaceholder);
             }
+            avatarRequestCreator.fit()
+                    .centerInside()
+                    .into(viewHolder.mAvatar);
 
             if (participants.size() == 1) {
                 viewHolder.mPresenceStatus.setVisibility(View.VISIBLE);
