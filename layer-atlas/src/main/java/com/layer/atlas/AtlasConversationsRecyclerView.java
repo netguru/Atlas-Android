@@ -39,8 +39,30 @@ import com.squareup.picasso.Picasso;
 public class AtlasConversationsRecyclerView extends RecyclerView {
     AtlasConversationsAdapter mAdapter;
     private ItemTouchHelper mSwipeItemTouchHelper;
-
     private ConversationStyle conversationStyle;
+    private LinearLayoutManager mLinearLayoutManager;
+
+    private RecyclerView.AdapterDataObserver mDataObserver = new RecyclerView.AdapterDataObserver() {
+
+        @Override
+        public void onItemRangeMoved(int fromPosition, int toPosition, int itemCount) {
+            super.onItemRangeMoved(fromPosition, toPosition, itemCount);
+            scrollToTopIfNeeded(toPosition);
+        }
+
+        @Override
+        public void onItemRangeInserted(int positionStart, int itemCount) {
+            super.onItemRangeInserted(positionStart, itemCount);
+            scrollToTopIfNeeded(positionStart);
+        }
+
+        private void scrollToTopIfNeeded(int toPosition) {
+            int firstVisiblePosition = mLinearLayoutManager.findFirstVisibleItemPosition();
+            if (toPosition == 0 && firstVisiblePosition  < 3) {
+                scrollToPosition(toPosition);
+            }
+        }
+    };
 
     public AtlasConversationsRecyclerView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
@@ -56,15 +78,16 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
     }
 
     public AtlasConversationsRecyclerView init(LayerClient layerClient, Picasso picasso, ConversationFormatter conversationFormatter) {
-        LinearLayoutManager manager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
-        manager.setStackFromEnd(false);
-        setLayoutManager(manager);
+        mLinearLayoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
+        mLinearLayoutManager.setStackFromEnd(false);
+        setLayoutManager(mLinearLayoutManager);
 
         // Don't flash items when changing content
         setItemAnimator(new NoChangeAnimator());
 
         mAdapter = new AtlasConversationsAdapter(getContext(), layerClient, picasso, conversationFormatter);
         mAdapter.setStyle(conversationStyle);
+        mAdapter.registerAdapterDataObserver(mDataObserver);
         super.setAdapter(mAdapter);
         refresh();
 
@@ -91,6 +114,7 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
     public void onDestroy() {
         if (mAdapter != null) {
             mAdapter.onDestroy();
+            mAdapter.unregisterAdapterDataObserver(mDataObserver);
         }
     }
 
