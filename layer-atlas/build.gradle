@@ -18,6 +18,8 @@ android {
         targetSdkVersion 24
         versionName = "${version}"
 
+        consumerProguardFiles 'proguard-rules.pro'
+
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
@@ -43,7 +45,7 @@ ext {
 
 dependencies {
     // Layer SDK
-    compile ('com.layer.sdk:layer-sdk:0.23.23') {
+    compile ('com.layer.sdk:layer-sdk:0.23.24') {
         exclude group: 'com.google.firebase', module: 'firebase-messaging'
         exclude group: 'com.google.firebase', module: 'firebase-core'
     }

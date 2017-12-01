@@ -1,5 +1,13 @@
 # Atlas Android
 
+## 0.4.19
+
+### Major Changes
+  * Update to Layer Android SDK Version 0.23.24
+
+#### Bug Fixes
+  * Update proguard rules to ensure sdk proguard mappings are available to the app
+
 ## 0.4.18
 
 ### Major Changes
