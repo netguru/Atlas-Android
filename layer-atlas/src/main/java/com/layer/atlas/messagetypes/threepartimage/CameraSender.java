@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class CameraSender extends AttachmentSender {
     private static final String PERMISSION_READ = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) ? Manifest.permission.READ_EXTERNAL_STORAGE : null;
     private static final String PERMISSION_WRITE = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) ? Manifest.permission.WRITE_EXTERNAL_STORAGE : null;
+    private static final String PERMISSION_CAMERA = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) ? Manifest.permission.CAMERA : null;
 
     public static final int ACTIVITY_REQUEST_CODE = 20;
     public static final int PERMISSION_REQUEST_CODE = 110;
@@ -81,8 +82,8 @@ public class CameraSender extends AttachmentSender {
 
         if (Log.isLoggable(Log.VERBOSE)) Log.v("Checking permissions");
 
-        if (!hasPermissions(activity, PERMISSION_READ, PERMISSION_WRITE)) {
-            requestPermissions(activity, PERMISSION_REQUEST_CODE, PERMISSION_READ, PERMISSION_WRITE);
+        if (!hasPermissions(activity, PERMISSION_READ, PERMISSION_WRITE, PERMISSION_CAMERA)) {
+            requestPermissions(activity, PERMISSION_REQUEST_CODE, PERMISSION_READ, PERMISSION_WRITE, PERMISSION_CAMERA);
         } else {
             startCameraIntent(activity);
         }
@@ -99,7 +100,9 @@ public class CameraSender extends AttachmentSender {
             return;
         }
 
-        if (grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+        if (grantResults[0] == PackageManager.PERMISSION_GRANTED &&
+            grantResults[1] == PackageManager.PERMISSION_GRANTED &&
+            grantResults[2] == PackageManager.PERMISSION_GRANTED) {
             if (Log.isLoggable(Log.VERBOSE)) Log.v("Sending camera image");
             Activity activity = mActivity.get();
             if (activity == null) return;
