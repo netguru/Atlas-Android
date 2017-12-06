@@ -95,7 +95,7 @@ public class CameraSender extends AttachmentSender {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode != PERMISSION_REQUEST_CODE) return;
 
-        if (grantResults.length != 2) {
+        if (grantResults.length != 3) {
             if (Log.isLoggable(Log.VERBOSE)) Log.v("One or more required  permissions denied");
             return;
         }
