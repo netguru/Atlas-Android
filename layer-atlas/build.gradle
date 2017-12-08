@@ -45,7 +45,7 @@ ext {
 
 dependencies {
     // Layer SDK
-    compile ('com.layer.sdk:layer-sdk:0.23.24') {
+    compile ('com.layer.sdk:layer-sdk:0.23.25') {
         exclude group: 'com.google.firebase', module: 'firebase-messaging'
         exclude group: 'com.google.firebase', module: 'firebase-core'
     }
