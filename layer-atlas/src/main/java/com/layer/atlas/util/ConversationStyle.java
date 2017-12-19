@@ -24,6 +24,7 @@ public final class ConversationStyle {
     private Typeface mDateUnreadTextTypeface;
     private int mDateUnreadTextColor;
     private AvatarStyle mAvatarStyle;
+    private int secondaryColor;
 
     private ConversationStyle(Builder builder) {
         mTitleTextColor = builder.titleTextColor;
@@ -45,6 +46,7 @@ public final class ConversationStyle {
         setDateUnreadTextTypeface(builder.dateUnreadTextTypeface);
         mDateUnreadTextColor = builder.dateUnreadTextColor;
         mAvatarStyle = builder.avatarStyle;
+        secondaryColor = builder.secondaryColor;
     }
 
     public void setTitleTextTypeface(Typeface titleTextTypeface) {
@@ -155,6 +157,11 @@ public final class ConversationStyle {
         return mAvatarStyle;
     }
 
+    @ColorInt
+    public int getSecondaryColor() {
+        return secondaryColor;
+    }
+
     public static final class Builder {
         private int titleTextColor;
         private int titleTextStyle;
@@ -175,6 +182,7 @@ public final class ConversationStyle {
         private Typeface dateUnreadTextTypeface;
         private int dateUnreadTextColor;
         private AvatarStyle avatarStyle;
+        private int secondaryColor;
 
         public Builder() {
         }
@@ -271,6 +279,11 @@ public final class ConversationStyle {
 
         public Builder avatarStyle(AvatarStyle val) {
             avatarStyle = val;
+            return this;
+        }
+
+        public Builder setSecondaryColor(@ColorInt int secondaryColor) {
+            this.secondaryColor = secondaryColor;
             return this;
         }
 

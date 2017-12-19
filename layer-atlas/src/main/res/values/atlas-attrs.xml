@@ -42,6 +42,7 @@
         <attr name="avatarTextColor" />
         <attr name="avatarBackgroundColor" />
         <attr name="avatarBorderColor" />
+        <attr name="priorityLabelColor" />
     </declare-styleable>
 
     <declare-styleable name="AtlasMessageComposer">

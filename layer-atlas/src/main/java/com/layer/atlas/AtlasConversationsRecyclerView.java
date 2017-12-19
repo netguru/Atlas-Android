@@ -216,6 +216,8 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         avatarStyleBuilder.avatarBackgroundColor(ta.getColor(R.styleable.AtlasConversationsRecyclerView_avatarBackgroundColor, context.getResources().getColor(R.color.atlas_avatar_background)));
         avatarStyleBuilder.avatarBorderColor(ta.getColor(R.styleable.AtlasConversationsRecyclerView_avatarBorderColor, context.getResources().getColor(R.color.atlas_avatar_border)));
         styleBuilder.avatarStyle(avatarStyleBuilder.build());
+
+        styleBuilder.setSecondaryColor(ta.getColor(R.styleable.AtlasConversationsRecyclerView_priorityLabelColor, context.getResources().getColor(R.color.atlas_delete_background)));
         ta.recycle();
         conversationStyle = styleBuilder.build();
     }
