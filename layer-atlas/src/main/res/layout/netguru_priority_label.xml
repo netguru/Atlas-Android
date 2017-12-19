@@ -10,4 +10,4 @@
     android:text="@string/netguru_priority_text"
     android:textAllCaps="true"
     android:textColor="@color/atlas_text_white"
-    android:textSize="12sp" />
+    android:textSize="@dimen/atlas_text_size_primary_item_metadata" />
