@@ -1,6 +1,7 @@
 package com.layer.atlas.adapters;
 
 import android.content.Context;
+import android.graphics.PorterDuff;
 import android.support.annotation.DrawableRes;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
@@ -238,6 +239,9 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             viewHolder.mTimeView.setText(null);
         } else {
             viewHolder.mMessageView.setText(this.getLastMessageString(context, lastMessage));
+            viewHolder.priorityLabel.setVisibility(conversation.getMetadata().containsKey(ViewHolder.METADATA_STARRED) &&
+                    conversation.getMetadata().get(ViewHolder.METADATA_STARRED).equals("true")
+                    ? View.VISIBLE : View.GONE);
             if (lastMessage.getReceivedAt() == null) {
                 viewHolder.mTimeView.setText(null);
             } else {
@@ -413,6 +417,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     //==============================================================================================
 
     static class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
+        public static final String METADATA_STARRED = "starred";
         // Layout to inflate
         public final static int RESOURCE_ID = R.layout.atlas_conversation_item;
 
@@ -420,6 +425,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         protected TextView mTitleView;
         protected TextView mMessageView;
         protected TextView mTimeView;
+        protected TextView priorityLabel;
 
         protected ImageView mAvatar;
         protected ImageView mUnreadMessagesStatus;
@@ -442,6 +448,9 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             mTitleView = (TextView) itemView.findViewById(R.id.title);
             mMessageView = (TextView) itemView.findViewById(R.id.last_message);
             mTimeView = (TextView) itemView.findViewById(R.id.time);
+            priorityLabel = itemView.findViewById(R.id.priority_label);
+            priorityLabel.getBackground()
+                    .setColorFilter(conversationStyle.getSecondaryColor(), PorterDuff.Mode.SRC_IN);
             itemView.setBackgroundColor(conversationStyle.getCellBackgroundColor());
         }
 

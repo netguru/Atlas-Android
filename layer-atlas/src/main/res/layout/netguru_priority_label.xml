@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/netguru_rounded_label"
+    android:paddingBottom="4dp"
+    android:paddingEnd="8dp"
+    android:paddingStart="8dp"
+    android:paddingTop="4dp"
+    android:text="@string/netguru_priority_text"
+    android:textAllCaps="true"
+    android:textColor="@color/atlas_text_white"
+    android:textSize="12sp" />
