@@ -108,8 +108,8 @@ public class CameraSender extends AttachmentSender {
         }
 
         if (grantResults[0] == PackageManager.PERMISSION_GRANTED &&
-                grantResults[1] == PackageManager.PERMISSION_GRANTED &&
-                grantResults[2] == PackageManager.PERMISSION_GRANTED) {
+            grantResults[1] == PackageManager.PERMISSION_GRANTED &&
+            grantResults[2] == PackageManager.PERMISSION_GRANTED) {
             if (Log.isLoggable(Log.VERBOSE)) Log.v("Sending camera image");
             Activity activity = mActivity.get();
             if (activity == null) return;

@@ -1,5 +1,16 @@
 # Atlas Android
 
+## 0.4.20
+
+### Major Changes
+  * Update to Layer Android SDK Version 0.23.25
+
+### Bug Fixes
+  * Update proguard rules to ensure sdk proguard mappings are available to the app
+  * Corrected permission size check in `CameraSender`
+  
+## 0.4.19 - Release pulled due to crash in SDK (0.23.24) telemetry
+
 ## 0.4.18
 
 ### Major Changes
@@ -7,7 +18,7 @@
 
 ## 0.4.17
 
-#### Bug Fixes
+### Bug Fixes
   * Fix Picasso crash when size of image is 0
   * Fix default attach button visibility
 
