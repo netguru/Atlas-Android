@@ -2,15 +2,13 @@ package com.layer.atlas.adapters;
 
 import android.content.Context;
 import android.graphics.PorterDuff;
-import android.support.annotation.DrawableRes;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.layer.atlas.AtlasAvatar;
 import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
 import com.layer.atlas.messagetypes.generic.GenericCellFactory;
@@ -32,7 +30,6 @@ import com.layer.sdk.query.Query;
 import com.layer.sdk.query.RecyclerViewController;
 import com.layer.sdk.query.SortDescriptor;
 import com.squareup.picasso.Picasso;
-import com.squareup.picasso.RequestCreator;
 
 import java.text.DateFormat;
 import java.util.Arrays;
@@ -40,8 +37,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
-import static com.layer.sdk.messaging.Presence.PresenceStatus.AVAILABLE;
 
 public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConversationsAdapter.ViewHolder> implements AtlasBaseAdapter<Conversation>, RecyclerViewController.Callback {
     protected final LayerClient mLayerClient;
@@ -63,7 +58,6 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
 
     protected ConversationFormatter mConversationFormatter;
     protected boolean mShouldShowAvatarPresence = true;
-    private Integer avatarPlaceholder;
 
     public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, ConversationFormatter conversationFormatter) {
         this(context, client, picasso, null, conversationFormatter);
@@ -164,10 +158,6 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         return this;
     }
 
-    public void setAvatarPlaceholder(@DrawableRes int placeholderRes) {
-        this.avatarPlaceholder = placeholderRes;
-    }
-
     private void syncInitialMessages(final int start, final int length) {
         new Thread(new Runnable() {
             @Override
@@ -212,6 +202,9 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         ViewHolder viewHolder = new ViewHolder(mInflater.inflate(ViewHolder.RESOURCE_ID, parent, false), conversationStyle, mShouldShowAvatarPresence);
         viewHolder.setClickListener(mViewHolderClickListener);
+        viewHolder.mAvatarCluster
+                .init(mPicasso)
+                .setStyle(conversationStyle.getAvatarStyle());
         return viewHolder;
     }
 
@@ -228,12 +221,11 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
 
         // Add the position to the positions map for Identity updates
         mIdentityEventListener.addIdentityPosition(position, participants);
+
+        viewHolder.mAvatarCluster.setParticipants(participants);
         viewHolder.mTitleView.setText(mConversationFormatter.getConversationTitle(mLayerClient, conversation, participants));
         viewHolder.applyStyle(conversation.getTotalUnreadMessageCount() > 0);
-        viewHolder.mUnreadMessagesStatus.setVisibility(
-                conversation.getTotalMessageCount() != null &&
-                        conversation.getTotalUnreadMessageCount() > 0 ? View.VISIBLE : View.INVISIBLE);
-        setAvatar(viewHolder, participants);
+
         if (lastMessage == null) {
             viewHolder.mMessageView.setText(null);
             viewHolder.mTimeView.setText(null);
@@ -246,33 +238,6 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
                 viewHolder.mTimeView.setText(null);
             } else {
                 viewHolder.mTimeView.setText(Util.formatTime(context, lastMessage.getReceivedAt(), mTimeFormat, mDateFormat));
-            }
-        }
-    }
-
-    private void setAvatar(ViewHolder viewHolder, Set<Identity> participants) {
-        if (participants.size() > 0) {
-            Identity participant = participants.iterator().next();
-            if (participant == null) {
-                return;
-            }
-            RequestCreator avatarRequestCreator = mPicasso.load(participant.getAvatarImageUrl());
-            if (avatarPlaceholder != null) {
-                avatarRequestCreator
-                        .error(avatarPlaceholder)
-                        .placeholder(avatarPlaceholder);
-            }
-            avatarRequestCreator.fit()
-                    .centerInside()
-                    .into(viewHolder.mAvatar);
-
-            if (participants.size() == 1) {
-                viewHolder.mPresenceStatus.setVisibility(View.VISIBLE);
-                viewHolder.mPresenceStatus.setImageDrawable(participant.getPresenceStatus() == AVAILABLE ?
-                        ContextCompat.getDrawable(viewHolder.mPresenceStatus.getContext(), R.drawable.netguru_presence_available) :
-                        ContextCompat.getDrawable(viewHolder.mPresenceStatus.getContext(), R.drawable.netguru_presence_not_available));
-            } else {
-                viewHolder.mPresenceStatus.setVisibility(View.GONE);
             }
         }
     }
@@ -423,13 +388,10 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
 
         // View cache
         protected TextView mTitleView;
+        protected AtlasAvatar mAvatarCluster;
         protected TextView mMessageView;
         protected TextView mTimeView;
         protected TextView priorityLabel;
-
-        protected ImageView mAvatar;
-        protected ImageView mUnreadMessagesStatus;
-        protected ImageView mPresenceStatus;
 
         protected ConversationStyle conversationStyle;
         protected Conversation mConversation;
@@ -441,13 +403,12 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             itemView.setOnLongClickListener(this);
             this.conversationStyle = conversationStyle;
 
-            mAvatar = itemView.findViewById(R.id.avatar);
-            mUnreadMessagesStatus = itemView.findViewById(R.id.unread_status);
-            mUnreadMessagesStatus.setColorFilter(conversationStyle.getAvatarStyle().getAvatarBackgroundColor());
-            mPresenceStatus = itemView.findViewById(R.id.presence_status);
+            mAvatarCluster = (AtlasAvatar) itemView.findViewById(R.id.avatar);
             mTitleView = (TextView) itemView.findViewById(R.id.title);
             mMessageView = (TextView) itemView.findViewById(R.id.last_message);
             mTimeView = (TextView) itemView.findViewById(R.id.time);
+            itemView.setBackgroundColor(conversationStyle.getCellBackgroundColor());
+            mAvatarCluster.setShouldShowPresence(shouldShowAvatarPresence);
             priorityLabel = itemView.findViewById(R.id.priority_label);
             priorityLabel.getBackground()
                     .setColorFilter(conversationStyle.getSecondaryColor(), PorterDuff.Mode.SRC_IN);

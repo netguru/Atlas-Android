@@ -46,7 +46,11 @@
         android:orientation="horizontal">
 
         <!--Avatar image!-->
-        <include layout="@layout/netguru_avatar" />
+        <com.layer.atlas.AtlasAvatar
+            android:id="@+id/avatar"
+            android:layout_width="@dimen/atlas_avatar_item_single"
+            android:layout_height="@dimen/atlas_avatar_item_single"
+            android:layout_margin="@dimen/atlas_padding_normal"/>
 
         <!-- right content part -->
         <FrameLayout
