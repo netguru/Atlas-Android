@@ -282,7 +282,7 @@ public class AtlasAvatar extends View {
         mPresenceOuterRadius = mOuterRadius / 3f;
         mPresenceInnerRadius = mInnerRadius / 3f;
         mPresenceCenterX = mCenterX + mOuterRadius - mPresenceOuterRadius;
-        mPresenceCenterY = mCenterY + mOuterRadius - mPresenceOuterRadius;
+        mPresenceCenterY = mCenterY - mOuterRadius + mPresenceOuterRadius;
 
         synchronized (mPendingLoads) {
             if (!mPendingLoads.isEmpty()) {

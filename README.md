@@ -1,5 +1,9 @@
 # Atlas
 
+## <a name="just_starting"></a>Just Starting?
+
+Use our new XDK! The XDK enables a richer messaging experience and new features will be added there. See the repository at https://github.com/layerhq/Android-XDK. Don't worry, Atlas-Android will still be supported in the meantime.
+
 ## <a name="overview"></a>Overview
 
 Atlas is an open source framework of customizable UI components for use with the Layer SDK designed to get messaging tested and integrated quickly.  This repository contains the Atlas library.  For a fully-featured messaging app, see the open source [Atlas Messenger](https://github.com/layerhq/Atlas-Android-Messenger) project, which uses this Atlas library and the Layer SDK.
