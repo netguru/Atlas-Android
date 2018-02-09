@@ -24,7 +24,7 @@
     <dimen name="atlas_primary_item_height">72dp</dimen>
     <dimen name="atlas_secondary_item_height">56dp</dimen>
     <dimen name="atlas_dropdown_item_height">48dp</dimen>
-    <dimen name="atlas_avatar_item_single">40dp</dimen>
+    <dimen name="atlas_avatar_item_single">48dp</dimen>
     <dimen name="atlas_avatar_item_multi">26dp</dimen>
     <dimen name="atlas_message_avatar_item_single">24dp</dimen>
     <dimen name="atlas_primary_icon_size">24dp</dimen>
