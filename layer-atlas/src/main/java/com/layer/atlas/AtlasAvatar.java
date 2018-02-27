@@ -198,8 +198,7 @@ public class AtlasAvatar extends View {
             if (added == null) return;
             mInitials.put(added, Util.getInitials(added));
 
-            final ImageTarget target;
-            target = new ImageTarget(this);
+            final ImageTarget target = new ImageTarget(this);
             target.setUrl(added.getAvatarImageUrl());
             mImageTargets.put(added, target);
             toLoad.add(target);
@@ -423,11 +422,7 @@ public class AtlasAvatar extends View {
 
     private static Diff diff(Set<Identity> oldSet, Set<Identity> newSet) {
         Diff diff = new Diff();
-        for (Identity newItem : newSet) {
-            if (!oldSet.contains(newItem) || oldSet.contains(newItem)) {
-                diff.added.add(newItem);
-            }
-        }
+        diff.added.addAll(newSet);
         for (Identity old : oldSet) {
             if (!newSet.contains(old)) {
                 diff.removed.add(old);
