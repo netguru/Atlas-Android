@@ -8,7 +8,6 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
-import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,14 +22,14 @@ import com.squareup.picasso.Target;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+
+import io.reactivex.Observable;
 
 /**
  * AtlasAvatar can be used to show information about one user, or as a cluster of multiple users.
@@ -71,8 +70,8 @@ public class AtlasAvatar extends View {
     private Set<Identity> mParticipants = new LinkedHashSet<>();
 
     // Initials and Picasso image targets by user ID
-    private final Map<Identity, ImageTarget> mImageTargets = new HashMap<>();
-    private final Map<Identity, String> mInitials = new HashMap<>();
+    private final Map<Identity, ImageTarget> mImageTargets = new LinkedHashMap<>();
+    private final Map<Identity, String> mInitials = new LinkedHashMap<>();
     private final List<ImageTarget> mPendingLoads = new ArrayList<ImageTarget>();
 
     // Sizing set in setClusterSizes() and used in onDraw()
@@ -175,66 +174,36 @@ public class AtlasAvatar extends View {
     private void update() {
         // Limit to MAX_AVATARS valid avatars, prioritizing participants with avatars.
         if (mParticipants.size() > MAX_AVATARS) {
-            Queue<Identity> withAvatars = new LinkedList<>();
-            Queue<Identity> withoutAvatars = new LinkedList<>();
-            for (Identity participant : mParticipants) {
-                if (participant == null) continue;
-                if (!TextUtils.isEmpty(participant.getAvatarImageUrl())) {
-                    withAvatars.add(participant);
-                } else {
-                    withoutAvatars.add(participant);
-                }
-            }
-
+            List<Identity> maxAvatars = Observable.fromIterable(mParticipants)
+                    .skip(mParticipants.size() - MAX_AVATARS)
+                    .toList().blockingGet();
             mParticipants = new LinkedHashSet<>();
-            int numWithout = Math.min(MAX_AVATARS - withAvatars.size(), withoutAvatars.size());
-            for (int i = 0; i < numWithout; i++) {
-                mParticipants.add(withoutAvatars.remove());
-            }
-            int numWith = Math.min(MAX_AVATARS, withAvatars.size());
-            for (int i = 0; i < numWith; i++) {
-                mParticipants.add(withAvatars.remove());
-            }
+            mParticipants.addAll(maxAvatars);
         }
 
         Diff diff = diff(mInitials.keySet(), mParticipants);
         List<ImageTarget> toLoad = new ArrayList<>();
 
-        List<ImageTarget> recyclableTargets = new ArrayList<ImageTarget>();
         for (Identity removed : diff.removed) {
             mInitials.remove(removed);
             ImageTarget target = mImageTargets.remove(removed);
             if (target != null) {
                 mPicasso.cancelRequest(target);
-                recyclableTargets.add(target);
             }
         }
 
+        mImageTargets.clear();
+        mInitials.clear();
         for (Identity added : diff.added) {
             if (added == null) return;
             mInitials.put(added, Util.getInitials(added));
 
-            final ImageTarget target;
-            if (recyclableTargets.isEmpty()) {
-                target = new ImageTarget(this);
-            } else {
-                target = recyclableTargets.remove(0);
-            }
+            final ImageTarget target = new ImageTarget(this);
             target.setUrl(added.getAvatarImageUrl());
             mImageTargets.put(added, target);
             toLoad.add(target);
         }
 
-        // Cancel existing in case the size or anything else changed.
-        // TODO: make caching intelligent wrt sizing
-        for (Identity existing : diff.existing) {
-            if (existing == null) continue;
-            mInitials.put(existing, Util.getInitials(existing));
-
-            ImageTarget existingTarget = mImageTargets.get(existing);
-            mPicasso.cancelRequest(existingTarget);
-            toLoad.add(existingTarget);
-        }
         for (ImageTarget target : mPendingLoads) {
             mPicasso.cancelRequest(target);
         }
@@ -453,23 +422,17 @@ public class AtlasAvatar extends View {
 
     private static Diff diff(Set<Identity> oldSet, Set<Identity> newSet) {
         Diff diff = new Diff();
+        diff.added.addAll(newSet);
         for (Identity old : oldSet) {
-            if (newSet.contains(old)) {
-                diff.existing.add(old);
-            } else {
+            if (!newSet.contains(old)) {
                 diff.removed.add(old);
             }
         }
-        for (Identity newItem : newSet) {
-            if (!oldSet.contains(newItem)) {
-                diff.added.add(newItem);
-            }
-        }
+
         return diff;
     }
 
     private static class Diff {
-        public List<Identity> existing = new ArrayList<>();
         public List<Identity> added = new ArrayList<>();
         public List<Identity> removed = new ArrayList<>();
     }

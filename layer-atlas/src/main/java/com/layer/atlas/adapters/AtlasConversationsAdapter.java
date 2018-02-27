@@ -1,5 +1,6 @@
 package com.layer.atlas.adapters;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.PorterDuff;
 import android.support.v7.widget.RecyclerView;
@@ -25,6 +26,7 @@ import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Conversation;
 import com.layer.sdk.messaging.Identity;
 import com.layer.sdk.messaging.Message;
+import com.layer.sdk.query.CompoundPredicate;
 import com.layer.sdk.query.Predicate;
 import com.layer.sdk.query.Query;
 import com.layer.sdk.query.RecyclerViewController;
@@ -32,11 +34,23 @@ import com.layer.sdk.query.SortDescriptor;
 import com.squareup.picasso.Picasso;
 
 import java.text.DateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
 
 public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConversationsAdapter.ViewHolder> implements AtlasBaseAdapter<Conversation>, RecyclerViewController.Callback {
     protected final LayerClient mLayerClient;
@@ -58,6 +72,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
 
     protected ConversationFormatter mConversationFormatter;
     protected boolean mShouldShowAvatarPresence = true;
+    private final CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, ConversationFormatter conversationFormatter) {
         this(context, client, picasso, null, conversationFormatter);
@@ -121,6 +136,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
      * Performs cleanup when the Activity/Fragment using the adapter is destroyed.
      */
     public void onDestroy() {
+        compositeDisposable.clear();
         mLayerClient.unregisterEventListener(mIdentityEventListener);
     }
 
@@ -211,18 +227,22 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     @Override
     public void onBindViewHolder(ViewHolder viewHolder, int position) {
         mQueryController.updateBoundPosition(position);
-        Conversation conversation = mQueryController.getItem(position);
+        final Conversation conversation = mQueryController.getItem(position);
         Message lastMessage = conversation.getLastMessage();
         Context context = viewHolder.itemView.getContext();
 
         viewHolder.setConversation(conversation);
-        Set<Identity> participants = conversation.getParticipants();
+        final Set<Identity> participants = conversation.getParticipants();
         participants.remove(mLayerClient.getAuthenticatedUser());
 
         // Add the position to the positions map for Identity updates
         mIdentityEventListener.addIdentityPosition(position, participants);
+        if (participants.size() > 1) {
+            sortAvatars(participants, conversation, viewHolder);
+        } else {
+            viewHolder.mAvatarCluster.setParticipants(participants);
+        }
 
-        viewHolder.mAvatarCluster.setParticipants(participants);
         viewHolder.mTitleView.setText(mConversationFormatter.getConversationTitle(mLayerClient, conversation, participants));
         viewHolder.applyStyle(conversation.getTotalUnreadMessageCount() > 0);
 
@@ -240,6 +260,91 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
                 viewHolder.mTimeView.setText(Util.formatTime(context, lastMessage.getReceivedAt(), mTimeFormat, mDateFormat));
             }
         }
+    }
+
+    private void sortAvatars(final Set<Identity> participants,
+                             final Conversation conversation,
+                             final ViewHolder viewHolder) {
+        compositeDisposable.add(Observable.fromIterable(participants)
+                .map(new Function<Identity, String>() {
+                    @Override
+                    public String apply(Identity identity) throws Exception {
+                        return identity.getUserId();
+                    }
+                }).flatMap(new Function<String, ObservableSource<List<Message>>>() {
+                    @Override
+                    public ObservableSource<List<Message>> apply(String identityId) throws Exception {
+                        return Observable.just(queryLastMessageForIdentity(conversation, identityId));
+                    }
+                }).filter(new io.reactivex.functions.Predicate<List<Message>>() {
+                    @Override
+                    public boolean test(List<Message> messages) throws Exception {
+                        return messages.size() > 0;
+                    }
+                }).map(new Function<List<Message>, Message>() {
+                    @Override
+                    public Message apply(List<Message> messages) throws Exception {
+                        return messages.get(0);
+                    }
+                }).sorted(new Comparator<Message>() {
+                    @SuppressLint("NewApi")
+                    @Override
+                    public int compare(Message message1, Message message2) {
+                        return Long.compare(message1.getPosition(), message2.getPosition());
+                    }
+                }).toList().map(new Function<List<Message>, Set<Identity>>() {
+                    @Override
+                    public Set<Identity> apply(List<Message> messages) throws Exception {
+                        return sortIdentities(participants, messages);
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<Set<Identity>>() {
+                    @Override
+                    public void accept(Set<Identity> identities) throws Exception {
+                        viewHolder.mAvatarCluster.setParticipants(identities);
+                    }
+                }));
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Message> queryLastMessageForIdentity(Conversation conversation, String identityId) {
+        Query.Builder<Message> query = Query.builder(Message.class)
+                .predicate(new CompoundPredicate(CompoundPredicate.Type.AND,
+                        new Predicate(Message.Property.CONVERSATION, Predicate.Operator.EQUAL_TO, conversation),
+                        new Predicate(Message.Property.SENDER_USER_ID, Predicate.Operator.EQUAL_TO, identityId)))
+                .sortDescriptor(new SortDescriptor(Message.Property.POSITION, SortDescriptor.Order.DESCENDING))
+                .limit(1);
+
+        return mLayerClient.executeQuery(query.build(), Query.ResultType.OBJECTS);
+    }
+
+    /**
+     * Sort identities in order first identities without any messages(random order) and then sorted by last message sent.
+     */
+    private Set<Identity> sortIdentities(Set<Identity> participants, List<Message> messages) {
+        Map<String, Identity> participantsMap = Observable.fromIterable(participants)
+                .toMap(new Function<Identity, String>() {
+                    @Override
+                    public String apply(Identity identity) throws Exception {
+                        return identity.getUserId();
+                    }
+                }).blockingGet();
+        List<Identity> sortedParticipants = new ArrayList<>(participants.size());
+        for (Message sortedMessage : messages) {
+            Identity sender = sortedMessage.getSender();
+            String identityId = sender != null ? sender.getUserId() : null;
+            if (identityId != null && participantsMap.containsKey(identityId)) {
+                sortedParticipants.add(participantsMap.get(identityId));
+                participantsMap.remove(identityId);
+            }
+        }
+        Set<Identity> allParticipants = new LinkedHashSet<>(participants.size());
+        allParticipants.addAll(participantsMap.values());
+        allParticipants.addAll(sortedParticipants);
+
+        return allParticipants;
     }
 
     @Override
