@@ -10,8 +10,8 @@ ext.artifactIdName = 'layer-atlas'
 group 'com.layer.atlas'
 
 android {
-    compileSdkVersion 26
-    buildToolsVersion '26.0.2'
+    compileSdkVersion 27
+    buildToolsVersion '27.0.3'
 
     defaultConfig {
         minSdkVersion 14
@@ -51,8 +51,8 @@ dependencies {
     compile 'org.slf4j:slf4j-nop:1.7.2'
 
     // Google Location
-    compile 'com.google.android.gms:play-services-location:11.4.0'
-    compile 'com.google.firebase:firebase-messaging:11.4.0'
+    compile 'com.google.android.gms:play-services-location:11.8.0'
+    compile 'com.google.firebase:firebase-messaging:11.8.0'
 
     // Image cache and loading
     compile 'com.squareup.picasso:picasso:2.5.2'
@@ -61,9 +61,9 @@ dependencies {
     compile 'com.davemorrissey.labs:subsampling-scale-image-view:3.4.1'
 
     // Android UI
-    compile 'com.android.support:recyclerview-v7:26.1.0'
-    compile 'com.android.support:appcompat-v7:26.1.0'
-    compile 'com.android.support:design:26.1.0'
+    compile 'com.android.support:recyclerview-v7:27.1.0'
+    compile 'com.android.support:appcompat-v7:27.1.0'
+    compile 'com.android.support:design:27.1.0'
 
     //RxJava
     compile 'io.reactivex.rxjava2:rxjava:2.1.7'
