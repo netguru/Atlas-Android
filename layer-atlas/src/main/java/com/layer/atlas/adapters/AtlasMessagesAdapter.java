@@ -4,6 +4,7 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
 import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
@@ -13,6 +14,7 @@ import android.widget.LinearLayout;
 import android.widget.Space;
 import android.widget.TextView;
 
+import com.jakewharton.rxrelay2.PublishRelay;
 import com.layer.atlas.AtlasAvatar;
 import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
@@ -96,6 +98,8 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
 
     protected boolean mShouldShowAvatarInOneOnOneConversations;
     protected boolean mShouldShowAvatarPresence = true;
+    @Nullable
+    private PublishRelay<Identity> identityPublishRelay;
 
     public AtlasMessagesAdapter(Context context, LayerClient layerClient, Picasso picasso) {
         mLayerClient = layerClient;
@@ -322,8 +326,8 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
         viewHolder.mRoot.addView(mFooterView);
     }
 
-    public void bindCellViewHolder(CellViewHolder viewHolder, int position) {
-        Message message = getItem(position);
+    public void bindCellViewHolder(final CellViewHolder viewHolder, int position) {
+        final Message message = getItem(position);
         viewHolder.mMessage = message;
         CellType cellType = mCellTypesByViewType.get(viewHolder.getItemViewType());
         boolean oneOnOne = message.getConversation().getParticipants().size() == 2;
@@ -391,6 +395,14 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
                 // Last message in cluster
                 viewHolder.mAvatar.setVisibility(View.VISIBLE);
                 viewHolder.mAvatar.setParticipants(message.getSender());
+                viewHolder.mAvatar.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        if (identityPublishRelay != null && message.getSender() != null) {
+                            identityPublishRelay.accept(message.getSender());
+                        }
+                    }
+                });
                 // Add the position to the positions map for Identity updates
                 mIdentityEventListener.addIdentityPosition(position, Collections.singleton(message.getSender()));
             } else {
@@ -419,6 +431,10 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
         viewHolder.mCellHolderSpecs.maxWidth = maxWidth;
         viewHolder.mCellHolderSpecs.maxHeight = maxHeight;
         cellType.mCellFactory.bindCellHolder(cellHolder, cellType.mCellFactory.getParsedContent(mLayerClient, message), message, viewHolder.mCellHolderSpecs);
+    }
+
+    public void setIdentityPublishRelay(PublishRelay<Identity> identityPublishRelay) {
+        this.identityPublishRelay = identityPublishRelay;
     }
 
     private void updateViewHolderForRecipientStatus(CellViewHolder viewHolder, int position, Message message) {
@@ -729,7 +745,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
             mReceipt = (TextView) itemView.findViewById(R.id.receipt);
 
             mAvatar = ((AtlasAvatar) itemView.findViewById(R.id.avatar));
-            if (mAvatar != null)  {
+            if (mAvatar != null) {
                 mAvatar.init(picasso);
                 mAvatar.setShouldShowPresence(shouldShowAvatarPresence);
             }

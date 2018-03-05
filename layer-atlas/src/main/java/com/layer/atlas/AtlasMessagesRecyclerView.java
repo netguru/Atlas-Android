@@ -24,6 +24,7 @@ import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.AttributeSet;
 import android.view.View;
 
+import com.jakewharton.rxrelay2.PublishRelay;
 import com.layer.atlas.adapters.AtlasMessagesAdapter;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
 import com.layer.atlas.messagetypes.MessageStyle;
@@ -31,6 +32,7 @@ import com.layer.atlas.util.itemanimators.NoChangeAnimator;
 import com.layer.atlas.util.views.SwipeableItem;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Conversation;
+import com.layer.sdk.messaging.Identity;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.query.Predicate;
 import com.layer.sdk.query.Query;
@@ -165,6 +167,14 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
     public AtlasMessagesRecyclerView setTextTypeface(Typeface myTypeface, Typeface otherTypeface) {
         mMessageStyle.setMyTextTypeface(myTypeface);
         mMessageStyle.setOtherTextTypeface(otherTypeface);
+        return this;
+    }
+
+    /**
+     * Set Relay to observe click action on message avatar object.
+     */
+    public AtlasMessagesRecyclerView setAvatarClickRelay(PublishRelay<Identity> identityPublishRelay) {
+        mAdapter.setIdentityPublishRelay(identityPublishRelay);
         return this;
     }
 
