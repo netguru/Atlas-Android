@@ -169,6 +169,14 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
     }
 
     /**
+     * Set listener to listen for click action on message avatar object.
+     */
+    public AtlasMessagesRecyclerView setOnAvatarClickListener(AtlasMessagesAdapter.OnAvatarClickListener onAvatarClickListener) {
+        mAdapter.setOnAvatarClickListener(onAvatarClickListener);
+        return this;
+    }
+
+    /**
      * Convenience pass-through to this list's LinearLayoutManager.
      *
      * @see LinearLayoutManager#findLastVisibleItemPosition()
