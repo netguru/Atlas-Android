@@ -434,9 +434,6 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
     }
 
     public void setOnAvatarClickListener(OnAvatarClickListener onAvatarClickListener) {
-        if (avatarClickListener!=null){
-            throw new IllegalArgumentException("Avatar click listener already set");
-        }
         this.avatarClickListener = onAvatarClickListener;
     }
 
