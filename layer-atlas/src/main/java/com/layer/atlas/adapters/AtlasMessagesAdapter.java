@@ -4,6 +4,7 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
 import android.util.DisplayMetrics;
@@ -14,7 +15,6 @@ import android.widget.LinearLayout;
 import android.widget.Space;
 import android.widget.TextView;
 
-import com.jakewharton.rxrelay2.PublishRelay;
 import com.layer.atlas.AtlasAvatar;
 import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
@@ -99,7 +99,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
     protected boolean mShouldShowAvatarInOneOnOneConversations;
     protected boolean mShouldShowAvatarPresence = true;
     @Nullable
-    private PublishRelay<Identity> identityPublishRelay;
+    private OnAvatarClickListener avatarClickListener;
 
     public AtlasMessagesAdapter(Context context, LayerClient layerClient, Picasso picasso) {
         mLayerClient = layerClient;
@@ -398,8 +398,8 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
                 viewHolder.mAvatar.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        if (identityPublishRelay != null && message.getSender() != null) {
-                            identityPublishRelay.accept(message.getSender());
+                        if (avatarClickListener != null && message.getSender() != null) {
+                            avatarClickListener.onAvatarClicked(message.getSender());
                         }
                     }
                 });
@@ -433,8 +433,11 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
         cellType.mCellFactory.bindCellHolder(cellHolder, cellType.mCellFactory.getParsedContent(mLayerClient, message), message, viewHolder.mCellHolderSpecs);
     }
 
-    public void setIdentityPublishRelay(PublishRelay<Identity> identityPublishRelay) {
-        this.identityPublishRelay = identityPublishRelay;
+    public void setOnAvatarClickListener(OnAvatarClickListener onAvatarClickListener) {
+        if (avatarClickListener!=null){
+            throw new IllegalArgumentException("Avatar click listener already set");
+        }
+        this.avatarClickListener = onAvatarClickListener;
     }
 
     private void updateViewHolderForRecipientStatus(CellViewHolder viewHolder, int position, Message message) {
@@ -835,5 +838,12 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
          * @param message The item appended to the AtlasQueryAdapter.
          */
         void onMessageAppend(AtlasMessagesAdapter adapter, Message message);
+    }
+
+    /**
+     * Listens for click on avatar
+     */
+    public interface OnAvatarClickListener {
+        void onAvatarClicked(@NonNull Identity identity);
     }
 }
