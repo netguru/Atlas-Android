@@ -251,9 +251,6 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             viewHolder.mTimeView.setText(null);
         } else {
             viewHolder.mMessageView.setText(this.getLastMessageString(context, lastMessage));
-            viewHolder.priorityLabel.setVisibility(conversation.getMetadata().containsKey(ViewHolder.METADATA_STARRED) &&
-                    conversation.getMetadata().get(ViewHolder.METADATA_STARRED).equals("true")
-                    ? View.VISIBLE : View.GONE);
             if (lastMessage.getReceivedAt() == null) {
                 viewHolder.mTimeView.setText(null);
             } else {
@@ -496,7 +493,6 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         protected AtlasAvatar mAvatarCluster;
         protected TextView mMessageView;
         protected TextView mTimeView;
-        protected TextView priorityLabel;
 
         protected ConversationStyle conversationStyle;
         protected Conversation mConversation;
@@ -514,9 +510,6 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             mTimeView = (TextView) itemView.findViewById(R.id.time);
             itemView.setBackgroundColor(conversationStyle.getCellBackgroundColor());
             mAvatarCluster.setShouldShowPresence(shouldShowAvatarPresence);
-            priorityLabel = itemView.findViewById(R.id.priority_label);
-            priorityLabel.getBackground()
-                    .setColorFilter(conversationStyle.getSecondaryColor(), PorterDuff.Mode.SRC_IN);
             itemView.setBackgroundColor(conversationStyle.getCellBackgroundColor());
         }
 

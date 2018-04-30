@@ -112,12 +112,6 @@
                         android:singleLine="true"
                         android:text="[last message]"
                         android:textSize="@dimen/atlas_text_size_primary_item_subtitle" />
-
-                    <include
-                        android:id="@+id/priority_label"
-                        layout="@layout/netguru_priority_label"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
                 </LinearLayout>
             </LinearLayout>
         </FrameLayout>
