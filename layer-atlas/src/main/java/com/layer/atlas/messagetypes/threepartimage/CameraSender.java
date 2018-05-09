@@ -129,8 +129,7 @@ public class CameraSender extends AttachmentSender {
             if (Log.isPerfLoggable()) {
                 Log.perf("CameraSender is attempting to send a message");
             }
-            Identity me = getLayerClient().getAuthenticatedUser();
-            String myName = me == null ? "" : Util.getDisplayName(me);
+            String myName = mUserName == null ? "" : mUserName;
             Message message = ThreePartImageUtils.newThreePartImageMessage(activity, getLayerClient(), new File(mPhotoFilePath.get()));
 
             PushNotificationPayload payload = new PushNotificationPayload.Builder()

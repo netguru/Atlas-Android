@@ -27,6 +27,7 @@ import android.view.View;
 
 import com.layer.atlas.adapters.AtlasConversationsAdapter;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
+import com.layer.atlas.participant.ChatParticipantProvider;
 import com.layer.atlas.util.AvatarStyle;
 import com.layer.atlas.util.ConversationFormatter;
 import com.layer.atlas.util.ConversationStyle;
@@ -77,7 +78,7 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         super(context);
     }
 
-    public AtlasConversationsRecyclerView init(LayerClient layerClient, Picasso picasso, ConversationFormatter conversationFormatter) {
+    public AtlasConversationsRecyclerView init(LayerClient layerClient, Picasso picasso, ConversationFormatter conversationFormatter, ChatParticipantProvider chatParticipantProvider) {
         mLinearLayoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
         mLinearLayoutManager.setStackFromEnd(false);
         setLayoutManager(mLinearLayoutManager);
@@ -85,7 +86,7 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         // Don't flash items when changing content
         setItemAnimator(new NoChangeAnimator());
 
-        mAdapter = new AtlasConversationsAdapter(getContext(), layerClient, picasso, conversationFormatter);
+        mAdapter = new AtlasConversationsAdapter(getContext(), layerClient, picasso, conversationFormatter, chatParticipantProvider);
         mAdapter.setStyle(conversationStyle);
         mAdapter.registerAdapterDataObserver(mDataObserver);
         super.setAdapter(mAdapter);
@@ -94,8 +95,8 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         return this;
     }
 
-    public AtlasConversationsRecyclerView init(LayerClient layerClient, Picasso picasso) {
-        return init(layerClient, picasso, new ConversationFormatter());
+    public AtlasConversationsRecyclerView init(LayerClient layerClient, Picasso picasso, ChatParticipantProvider chatParticipantProvider) {
+        return init(layerClient, picasso, new ConversationFormatter(), chatParticipantProvider);
     }
 
     @Override

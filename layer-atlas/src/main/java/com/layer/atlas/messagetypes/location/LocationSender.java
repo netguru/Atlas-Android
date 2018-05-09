@@ -167,8 +167,7 @@ public class LocationSender extends AttachmentSender {
             Context context = sender.getContext();
             LayerClient client = sender.getLayerClient();
             try {
-                Identity me = client.getAuthenticatedUser();
-                String myName = me == null ? "" : Util.getDisplayName(me);
+                String myName = sender.mUserName == null ? "" : sender.mUserName;
                 JSONObject o = new JSONObject()
                         .put(LocationCellFactory.KEY_LATITUDE, location.getLatitude())
                         .put(LocationCellFactory.KEY_LONGITUDE, location.getLongitude())

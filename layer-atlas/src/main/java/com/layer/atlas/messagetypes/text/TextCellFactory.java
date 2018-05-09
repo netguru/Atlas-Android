@@ -17,7 +17,6 @@ import com.layer.atlas.util.Log;
 import com.layer.atlas.util.Util;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.listeners.LayerProgressListener;
-import com.layer.sdk.messaging.Identity;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.MessagePart;
 
@@ -27,7 +26,7 @@ import java.util.WeakHashMap;
 public class TextCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder, TextCellFactory.TextInfo> implements View.OnLongClickListener {
     public final static String MIME_TYPE = "text/plain";
     //This is used to bind TextView  to the exact message to ensure the right TextView is updated
-    private Map<TextView, Uri> mTextViewUriHashMap =  new WeakHashMap<>();
+    private Map<TextView, Uri> mTextViewUriHashMap = new WeakHashMap<>();
 
     public TextCellFactory() {
         super(256 * 1024);
@@ -56,14 +55,7 @@ public class TextCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder
     public TextInfo parseContent(LayerClient layerClient, Message message) {
         MessagePart part = message.getMessageParts().get(0);
         String text = part.isContentReady() ? new String(part.getData()) : null;
-        String name;
-        Identity sender = message.getSender();
-        if (sender != null) {
-            name = Util.getDisplayName(sender) + ": ";
-        } else {
-            name = "";
-        }
-        return new TextInfo(text, name);
+        return new TextInfo(text, "");
     }
 
     @Override
@@ -97,17 +89,19 @@ public class TextCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder
         mTextViewUriHashMap.put(textView, message.getId());
         LayerProgressListener layerProgressListener = new LayerProgressListener.Weak() {
             @Override
-            public void onProgressStart(MessagePart messagePart, Operation operation) {}
+            public void onProgressStart(MessagePart messagePart, Operation operation) {
+            }
 
             @Override
-            public void onProgressUpdate(MessagePart messagePart, Operation operation, long l) {}
+            public void onProgressUpdate(MessagePart messagePart, Operation operation, long l) {
+            }
 
             @Override
             public void onProgressComplete(MessagePart messagePart, Operation operation) {
                 //Check the downloaded message to ensure the TextView has not been recycled
                 Uri messageId = messagePart.getMessage().getId();
                 Uri uriValueInMap = mTextViewUriHashMap.get(textView);
-                if (uriValueInMap != null && uriValueInMap.equals(messageId) ) {
+                if (uriValueInMap != null && uriValueInMap.equals(messageId)) {
                     textView.setText(new String(part.getData()));
                     mTextViewUriHashMap.remove(textView);
                     cellHolder.mProgressBar.hide();
@@ -127,7 +121,7 @@ public class TextCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder
     }
 
     public boolean isType(Message message) {
-        return message.getMessageParts().size() == 1 &&  message.getMessageParts().get(0).getMimeType().equals(MIME_TYPE);
+        return message.getMessageParts().size() == 1 && message.getMessageParts().get(0).getMimeType().equals(MIME_TYPE);
     }
 
     @Override
@@ -136,8 +130,7 @@ public class TextCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder
             MessagePart part = message.getMessageParts().get(0);
             // For large text content, the MessagePart may not be downloaded yet.
             return part.isContentReady() ? new String(part.getData()) : "";
-        }
-        else {
+        } else {
             throw new IllegalArgumentException("Message is not of the correct type - Text");
         }
     }

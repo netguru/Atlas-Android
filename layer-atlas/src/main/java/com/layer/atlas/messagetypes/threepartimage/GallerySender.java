@@ -92,8 +92,7 @@ public class GallerySender extends AttachmentSender {
             if (Log.isPerfLoggable()) {
                 Log.perf("GallerySender is attempting to send a message");
             }
-            Identity me = getLayerClient().getAuthenticatedUser();
-            String myName = me == null ? "" : Util.getDisplayName(me);
+            String myName = mUserName == null ? "" : mUserName;
             Uri uri = data.getData();
             Message message = ThreePartImageUtils.newThreePartImageMessage(activity, getLayerClient(), uri);
 

@@ -16,6 +16,7 @@ public abstract class MessageSender {
 
     private Context mContext;
     private LayerClient mLayerClient;
+    protected String mUserName;
 
     public void init(Context context, LayerClient layerClient) {
         mContext = context;
@@ -27,8 +28,9 @@ public abstract class MessageSender {
      *
      * @param conversation The Conversation to send generated Messages.
      */
-    public MessageSender setConversation(Conversation conversation) {
+    public MessageSender setConversation(Conversation conversation, String userName) {
         mConversation = conversation;
+        mUserName = userName;
         return this;
     }
 
