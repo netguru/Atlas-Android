@@ -19,8 +19,6 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.net.Uri;
-import android.support.annotation.NonNull;
-import android.text.TextUtils;
 
 import com.layer.atlas.BuildConfig;
 import com.layer.atlas.R;
@@ -67,66 +65,12 @@ public class Util {
         manager.setPrimaryClip(clipData);
     }
 
-
-    public static String getInitials(Identity user) {
-        String first = user.getFirstName();
-        String last = user.getLastName();
-        if (!TextUtils.isEmpty(first)) {
-            if (!TextUtils.isEmpty(last)) {
-                return getInitials(first) + getInitials(last);
-            }
-            return getInitials(first);
-        } else if (!TextUtils.isEmpty(last)) {
-            return getInitials(last);
-        } else {
-            return getInitials(user.getDisplayName());
-        }
-    }
-
     public static List<String> getIdsFromIdentities(Collection<Identity> identityHashSet) {
         List<String> isd = new ArrayList<>(identityHashSet.size());
         for (Identity identity : identityHashSet) {
             isd.add(identity.getUserId());
         }
         return isd;
-    }
-
-    private static String getInitials(String name) {
-        if (TextUtils.isEmpty(name)) return "";
-        if (name.contains(" ")) {
-            String[] nameParts = name.split(" ");
-            int count = 0;
-            StringBuilder b = new StringBuilder();
-            for (String part : nameParts) {
-                String t = part.trim();
-                if (t.isEmpty()) continue;
-                b.append(("" + t.charAt(0)).toUpperCase());
-                if (++count >= 2) break;
-            }
-            return b.toString();
-        } else {
-            return ("" + name.trim().charAt(0)).toUpperCase();
-        }
-    }
-
-    @NonNull
-    public static String getDisplayName(Identity identity) {
-        if (TextUtils.isEmpty(identity.getDisplayName())) {
-            String first = identity.getFirstName();
-            String last = identity.getLastName();
-            if (!TextUtils.isEmpty(first)) {
-                if (!TextUtils.isEmpty(last)) {
-                    return String.format("%s %s", first, last);
-                }
-                return first;
-            } else if (!TextUtils.isEmpty(last)) {
-                return last;
-            } else {
-//                return identity.getUserId();//Id shouldn't be displayed anywhere!!!
-                return "";
-            }
-        }
-        return identity.getDisplayName();
     }
 
     public static String formatTime(Context context, Date date, DateFormat timeFormat, DateFormat dateFormat) {

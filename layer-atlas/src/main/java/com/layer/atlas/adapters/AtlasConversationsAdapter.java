@@ -2,7 +2,6 @@ package com.layer.atlas.adapters;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.graphics.PorterDuff;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,6 +16,8 @@ import com.layer.atlas.messagetypes.location.LocationCellFactory;
 import com.layer.atlas.messagetypes.singlepartimage.SinglePartImageCellFactory;
 import com.layer.atlas.messagetypes.text.TextCellFactory;
 import com.layer.atlas.messagetypes.threepartimage.ThreePartImageCellFactory;
+import com.layer.atlas.participant.ChatParticipantProvider;
+import com.layer.atlas.participant.Participant;
 import com.layer.atlas.util.ConversationFormatter;
 import com.layer.atlas.util.ConversationStyle;
 import com.layer.atlas.util.IdentityRecyclerViewEventListener;
@@ -72,13 +73,16 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
 
     protected ConversationFormatter mConversationFormatter;
     protected boolean mShouldShowAvatarPresence = true;
-    private final CompositeDisposable compositeDisposable = new CompositeDisposable();
 
-    public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, ConversationFormatter conversationFormatter) {
-        this(context, client, picasso, null, conversationFormatter);
+    private final CompositeDisposable compositeDisposable = new CompositeDisposable();
+    private final ChatParticipantProvider chatParticipantProvider;
+
+    public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, ConversationFormatter conversationFormatter, ChatParticipantProvider chatParticipantProvider) {
+        this(context, client, picasso, null, conversationFormatter, chatParticipantProvider);
     }
 
-    public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, Collection<String> updateAttributes, ConversationFormatter conversationFormatter) {
+    public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, Collection<String> updateAttributes, ConversationFormatter conversationFormatter, ChatParticipantProvider chatParticipantProvider) {
+        this.chatParticipantProvider = chatParticipantProvider;
         mConversationFormatter = conversationFormatter;
         Query<Conversation> query = Query.builder(Conversation.class)
                 /* Only show conversations we're still a member of */
@@ -225,7 +229,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     }
 
     @Override
-    public void onBindViewHolder(ViewHolder viewHolder, int position) {
+    public void onBindViewHolder(final ViewHolder viewHolder, int position) {
         mQueryController.updateBoundPosition(position);
         final Conversation conversation = mQueryController.getItem(position);
         Message lastMessage = conversation.getLastMessage();
@@ -237,13 +241,9 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
 
         // Add the position to the positions map for Identity updates
         mIdentityEventListener.addIdentityPosition(position, participants);
-        if (participants.size() > 1) {
-            sortAvatars(participants, conversation, viewHolder);
-        } else {
-            viewHolder.mAvatarCluster.setParticipants(participants);
-        }
 
-        viewHolder.mTitleView.setText(mConversationFormatter.getConversationTitle(mLayerClient, conversation, participants));
+
+        viewHolder.mTitleView.setText("");
         viewHolder.applyStyle(conversation.getTotalUnreadMessageCount() > 0);
 
         if (lastMessage == null) {
@@ -257,16 +257,37 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
                 viewHolder.mTimeView.setText(Util.formatTime(context, lastMessage.getReceivedAt(), mTimeFormat, mDateFormat));
             }
         }
+
+        compositeDisposable.add(chatParticipantProvider
+                .getParticipants(Util.getIdsFromIdentities(participants))
+                .subscribe(new Consumer<List<Participant>>() {
+                    @Override
+                    public void accept(List<Participant> participants) throws Exception {
+                        if (!participants.isEmpty()) {
+                            viewHolder.mTitleView.setText(ConversationFormatter.getConversationTitle(participants, conversation));
+                            if (participants.size() > 1) {
+                                sortAvatars(participants, conversation, viewHolder);
+                            } else {
+                                viewHolder.mAvatarCluster.setParticipants(new LinkedHashSet<>(participants));
+                            }
+                        }
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        Log.e("Error during participants downloading", throwable);
+                    }
+                }));
     }
 
-    private void sortAvatars(final Set<Identity> participants,
+    private void sortAvatars(final List<Participant> participants,
                              final Conversation conversation,
                              final ViewHolder viewHolder) {
         compositeDisposable.add(Observable.fromIterable(participants)
-                .map(new Function<Identity, String>() {
+                .map(new Function<Participant, String>() {
                     @Override
-                    public String apply(Identity identity) throws Exception {
-                        return identity.getUserId();
+                    public String apply(Participant identity) throws Exception {
+                        return identity.getId();
                     }
                 }).flatMap(new Function<String, ObservableSource<List<Message>>>() {
                     @Override
@@ -289,17 +310,17 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
                     public int compare(Message message1, Message message2) {
                         return Long.compare(message1.getPosition(), message2.getPosition());
                     }
-                }).toList().map(new Function<List<Message>, Set<Identity>>() {
+                }).toList().map(new Function<List<Message>, Set<Participant>>() {
                     @Override
-                    public Set<Identity> apply(List<Message> messages) throws Exception {
+                    public Set<Participant> apply(List<Message> messages) throws Exception {
                         return sortIdentities(participants, messages);
                     }
                 })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Consumer<Set<Identity>>() {
+                .subscribe(new Consumer<Set<Participant>>() {
                     @Override
-                    public void accept(Set<Identity> identities) throws Exception {
+                    public void accept(Set<Participant> identities) throws Exception {
                         viewHolder.mAvatarCluster.setParticipants(identities);
                     }
                 }));
@@ -320,15 +341,15 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     /**
      * Sort identities in order first identities without any messages(random order) and then sorted by last message sent.
      */
-    private Set<Identity> sortIdentities(Set<Identity> participants, List<Message> messages) {
-        Map<String, Identity> participantsMap = Observable.fromIterable(participants)
-                .toMap(new Function<Identity, String>() {
+    private Set<Participant> sortIdentities(List<Participant> participants, List<Message> messages) {
+        Map<String, Participant> participantsMap = Observable.fromIterable(participants)
+                .toMap(new Function<Participant, String>() {
                     @Override
-                    public String apply(Identity identity) throws Exception {
-                        return identity.getUserId();
+                    public String apply(Participant identity) throws Exception {
+                        return identity.getId();
                     }
                 }).blockingGet();
-        List<Identity> sortedParticipants = new ArrayList<>(participants.size());
+        List<Participant> sortedParticipants = new ArrayList<>(participants.size());
         for (Message sortedMessage : messages) {
             Identity sender = sortedMessage.getSender();
             String identityId = sender != null ? sender.getUserId() : null;
@@ -337,7 +358,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
                 participantsMap.remove(identityId);
             }
         }
-        Set<Identity> allParticipants = new LinkedHashSet<>(participants.size());
+        Set<Participant> allParticipants = new LinkedHashSet<>(participants.size());
         allParticipants.addAll(participantsMap.values());
         allParticipants.addAll(sortedParticipants);
 
@@ -484,7 +505,6 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     //==============================================================================================
 
     static class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
-        public static final String METADATA_STARRED = "starred";
         // Layout to inflate
         public final static int RESOURCE_ID = R.layout.atlas_conversation_item;
 
@@ -504,10 +524,10 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             itemView.setOnLongClickListener(this);
             this.conversationStyle = conversationStyle;
 
-            mAvatarCluster = (AtlasAvatar) itemView.findViewById(R.id.avatar);
-            mTitleView = (TextView) itemView.findViewById(R.id.title);
-            mMessageView = (TextView) itemView.findViewById(R.id.last_message);
-            mTimeView = (TextView) itemView.findViewById(R.id.time);
+            mAvatarCluster = itemView.findViewById(R.id.avatar);
+            mTitleView = itemView.findViewById(R.id.title);
+            mMessageView = itemView.findViewById(R.id.last_message);
+            mTimeView = itemView.findViewById(R.id.time);
             itemView.setBackgroundColor(conversationStyle.getCellBackgroundColor());
             mAvatarCluster.setShouldShowPresence(shouldShowAvatarPresence);
             itemView.setBackgroundColor(conversationStyle.getCellBackgroundColor());

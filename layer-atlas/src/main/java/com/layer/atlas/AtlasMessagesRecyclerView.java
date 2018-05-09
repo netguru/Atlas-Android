@@ -27,6 +27,7 @@ import android.view.View;
 import com.layer.atlas.adapters.AtlasMessagesAdapter;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
 import com.layer.atlas.messagetypes.MessageStyle;
+import com.layer.atlas.participant.ChatParticipantProvider;
 import com.layer.atlas.util.itemanimators.NoChangeAnimator;
 import com.layer.atlas.util.views.SwipeableItem;
 import com.layer.sdk.LayerClient;
@@ -58,13 +59,14 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
         super(context);
     }
 
-    public AtlasMessagesRecyclerView init(LayerClient layerClient, Picasso picasso) {
+    public AtlasMessagesRecyclerView init(LayerClient layerClient, Picasso picasso,
+                                          ChatParticipantProvider chatParticipantProvider) {
         mLayoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
         mLayoutManager.setStackFromEnd(true);
         setLayoutManager(mLayoutManager);
 
         // Create an adapter that auto-scrolls if we're already at the bottom
-        mAdapter = new AtlasMessagesAdapter(getContext(), layerClient, picasso)
+        mAdapter = new AtlasMessagesAdapter(getContext(), layerClient, picasso, chatParticipantProvider)
                 .setRecyclerView(this)
                 .setOnMessageAppendListener(new AtlasMessagesAdapter.OnMessageAppendListener() {
                     @Override

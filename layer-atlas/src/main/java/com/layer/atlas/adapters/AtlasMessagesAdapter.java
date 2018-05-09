@@ -19,6 +19,8 @@ import com.layer.atlas.AtlasAvatar;
 import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
 import com.layer.atlas.messagetypes.MessageStyle;
+import com.layer.atlas.participant.ChatParticipantProvider;
+import com.layer.atlas.participant.Participant;
 import com.layer.atlas.util.IdentityRecyclerViewEventListener;
 import com.layer.atlas.util.Log;
 import com.layer.atlas.util.Util;
@@ -37,6 +39,9 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.functions.Consumer;
 
 /**
  * AtlasMessagesAdapter drives an AtlasMessagesList.  The AtlasMessagesAdapter itself handles
@@ -100,11 +105,15 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
     protected boolean mShouldShowAvatarPresence = true;
     @Nullable
     private OnAvatarClickListener avatarClickListener;
+    private final CompositeDisposable compositeDisposable = new CompositeDisposable();
+    private final ChatParticipantProvider chatParticipantProvider;
 
-    public AtlasMessagesAdapter(Context context, LayerClient layerClient, Picasso picasso) {
+    public AtlasMessagesAdapter(Context context, LayerClient layerClient, Picasso picasso,
+                                ChatParticipantProvider chatParticipantProvider) {
         mLayerClient = layerClient;
         mPicasso = picasso;
         mLayoutInflater = LayoutInflater.from(context);
+        this.chatParticipantProvider = chatParticipantProvider;
         mUiThreadHandler = new Handler(Looper.getMainLooper());
         mDateFormat = android.text.format.DateFormat.getDateFormat(context);
         mTimeFormat = android.text.format.DateFormat.getTimeFormat(context);
@@ -150,6 +159,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
      * Performs cleanup when the Activity/Fragment using the adapter is destroyed.
      */
     public void onDestroy() {
+        compositeDisposable.clear();
         mLayerClient.unregisterEventListener(mIdentityEventListener);
     }
 
@@ -370,7 +380,13 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
             if (!oneOnOne && (cluster.mClusterWithPrevious == null || cluster.mClusterWithPrevious == ClusterType.NEW_SENDER)) {
                 Identity sender = message.getSender();
                 if (sender != null) {
-                    viewHolder.mUserName.setText(Util.getDisplayName(sender));
+                    participantAction(sender.getUserId(), new Consumer<Participant>() {
+                        @Override
+                        public void accept(Participant participant) throws Exception {
+                            viewHolder.mUserName.setText(participant.getName());
+                        }
+                    });
+
                 } else {
                     viewHolder.mUserName.setText(R.string.atlas_message_item_unknown_user);
                 }
@@ -385,24 +401,40 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
             // Avatars
             if (oneOnOne) {
                 if (mShouldShowAvatarInOneOnOneConversations) {
-                    viewHolder.mAvatar.setVisibility(View.VISIBLE);
-                    viewHolder.mAvatar.setParticipants(message.getSender());
-
+                    Identity sender = message.getSender();
+                    if (sender != null) {
+                        participantAction(sender.getUserId(), new Consumer<Participant>() {
+                            @Override
+                            public void accept(Participant participant) throws Exception {
+                                viewHolder.mAvatar.setVisibility(View.VISIBLE);
+                                viewHolder.mAvatar.setParticipants(participant);
+                            }
+                        });
+                    }
                 } else {
                     viewHolder.mAvatar.setVisibility(View.GONE);
                 }
             } else if (cluster.mClusterWithNext == null || cluster.mClusterWithNext != ClusterType.LESS_THAN_MINUTE) {
-                // Last message in cluster
-                viewHolder.mAvatar.setVisibility(View.VISIBLE);
-                viewHolder.mAvatar.setParticipants(message.getSender());
-                viewHolder.mAvatar.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        if (avatarClickListener != null && message.getSender() != null) {
-                            avatarClickListener.onAvatarClicked(message.getSender());
+                Identity sender = message.getSender();
+                if (sender != null) {
+                    participantAction(sender.getUserId(), new Consumer<Participant>() {
+                        @Override
+                        public void accept(Participant participant) throws Exception {
+                            // Last message in cluster
+                            viewHolder.mAvatar.setVisibility(View.VISIBLE);
+                            viewHolder.mAvatar.setParticipants(participant);
+                            viewHolder.mAvatar.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    if (avatarClickListener != null && message.getSender() != null) {
+                                        avatarClickListener.onAvatarClicked(message.getSender());
+                                    }
+                                }
+                            });
                         }
-                    }
-                });
+                    });
+                }
+
                 // Add the position to the positions map for Identity updates
                 mIdentityEventListener.addIdentityPosition(position, Collections.singleton(message.getSender()));
             } else {
@@ -431,6 +463,18 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
         viewHolder.mCellHolderSpecs.maxWidth = maxWidth;
         viewHolder.mCellHolderSpecs.maxHeight = maxHeight;
         cellType.mCellFactory.bindCellHolder(cellHolder, cellType.mCellFactory.getParsedContent(mLayerClient, message), message, viewHolder.mCellHolderSpecs);
+    }
+
+    private void participantAction(@NonNull String attendanceId, Consumer<Participant> actionConsumer) {
+        compositeDisposable.add(chatParticipantProvider.getParticipant(attendanceId)
+                .subscribe(actionConsumer,
+                        new Consumer<Throwable>() {
+                            @Override
+                            public void accept(Throwable throwable) throws Exception {
+                                Log.e(String.format("Loading attendance error : %s",
+                                        throwable.getLocalizedMessage()));
+                            }
+                        }));
     }
 
     public void setOnAvatarClickListener(OnAvatarClickListener onAvatarClickListener) {

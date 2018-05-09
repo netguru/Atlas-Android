@@ -12,10 +12,10 @@ import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.layer.atlas.participant.Participant;
 import com.layer.atlas.util.AvatarStyle;
-import com.layer.atlas.util.Util;
+import com.layer.atlas.util.ConversationFormatter;
 import com.layer.atlas.util.picasso.transformations.CircleTransform;
-import com.layer.sdk.messaging.Identity;
 import com.layer.sdk.messaging.Presence;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
@@ -33,7 +33,7 @@ import io.reactivex.Observable;
 
 /**
  * AtlasAvatar can be used to show information about one user, or as a cluster of multiple users.
- *
+ * <p>
  * AtlasAvatar uses Picasso to render the avatar image. So, you need to init
  */
 public class AtlasAvatar extends View {
@@ -67,11 +67,11 @@ public class AtlasAvatar extends View {
     }
 
     private Picasso mPicasso;
-    private Set<Identity> mParticipants = new LinkedHashSet<>();
+    private Set<Participant> mParticipants = new LinkedHashSet<>();
 
     // Initials and Picasso image targets by user ID
-    private final Map<Identity, ImageTarget> mImageTargets = new LinkedHashMap<>();
-    private final Map<Identity, String> mInitials = new LinkedHashMap<>();
+    private final Map<Participant, ImageTarget> mImageTargets = new LinkedHashMap<>();
+    private final Map<Participant, String> mInitials = new LinkedHashMap<>();
     private final List<ImageTarget> mPendingLoads = new ArrayList<ImageTarget>();
 
     // Sizing set in setClusterSizes() and used in onDraw()
@@ -125,7 +125,7 @@ public class AtlasAvatar extends View {
         return this;
     }
 
-    public AtlasAvatar setParticipants(Identity... participants) {
+    public AtlasAvatar setParticipants(Participant... participants) {
         mParticipants.clear();
         mParticipants.addAll(Arrays.asList(participants));
         update();
@@ -135,7 +135,7 @@ public class AtlasAvatar extends View {
     /**
      * Enable or disable showing presence information for this avatar. Presence is shown only for
      * single user Avatars. If avatar is a cluster, presence will not be shown.
-     *
+     * <p>
      * Default is `true`, to show presence.
      *
      * @param shouldShowPresence set to `true` to show presence, `false` otherwise.
@@ -148,7 +148,7 @@ public class AtlasAvatar extends View {
 
     /**
      * Returns if `shouldShowPresence` flag is enabled for this avatar.
-     *
+     * <p>
      * Default is `true`
      *
      * @return `true` if `shouldShowPresence` is set to `true`, `false` otherwise.
@@ -160,21 +160,21 @@ public class AtlasAvatar extends View {
     /**
      * Should be called from UI thread.
      */
-    public AtlasAvatar setParticipants(Set<Identity> participants) {
+    public AtlasAvatar setParticipants(Set<Participant> participants) {
         mParticipants.clear();
         mParticipants.addAll(participants);
         update();
         return this;
     }
 
-    public Set<Identity> getParticipants() {
+    public Set<Participant> getParticipants() {
         return new LinkedHashSet<>(mParticipants);
     }
 
     private void update() {
         // Limit to MAX_AVATARS valid avatars, prioritizing participants with avatars.
         if (mParticipants.size() > MAX_AVATARS) {
-            List<Identity> maxAvatars = Observable.fromIterable(mParticipants)
+            List<Participant> maxAvatars = Observable.fromIterable(mParticipants)
                     .skip(mParticipants.size() - MAX_AVATARS)
                     .toList().blockingGet();
             mParticipants = new LinkedHashSet<>();
@@ -184,7 +184,7 @@ public class AtlasAvatar extends View {
         Diff diff = diff(mInitials.keySet(), mParticipants);
         List<ImageTarget> toLoad = new ArrayList<>();
 
-        for (Identity removed : diff.removed) {
+        for (Participant removed : diff.removed) {
             mInitials.remove(removed);
             ImageTarget target = mImageTargets.remove(removed);
             if (target != null) {
@@ -194,9 +194,9 @@ public class AtlasAvatar extends View {
 
         mImageTargets.clear();
         mInitials.clear();
-        for (Identity added : diff.added) {
+        for (Participant added : diff.added) {
             if (added == null) return;
-            mInitials.put(added, Util.getInitials(added));
+            mInitials.put(added, ConversationFormatter.getInitialsFromParticipant(added.getName()));
 
             final ImageTarget target = new ImageTarget(this);
             target.setUrl(added.getAvatarImageUrl());
@@ -288,7 +288,7 @@ public class AtlasAvatar extends View {
         float cx = mCenterX;
         float cy = mCenterY;
         mContentRect.set(cx - contentRadius, cy - contentRadius, cx + contentRadius, cy + contentRadius);
-        for (Map.Entry<Identity, String> entry : mInitials.entrySet()) {
+        for (Map.Entry<Participant, String> entry : mInitials.entrySet()) {
             // Border / background
             if (hasBorder) canvas.drawCircle(cx, cy, mOuterRadius, mPaintBorder);
 
@@ -317,13 +317,14 @@ public class AtlasAvatar extends View {
         }
     }
 
-    private void drawPresence(Canvas canvas, Identity identity) {
-        Presence.PresenceStatus currentStatus = identity.getPresenceStatus();
+    private void drawPresence(Canvas canvas, Participant identity) {
+//        Presence.PresenceStatus currentStatus = identity.getPresenceStatus();//TODO: Display presence, different task 09.05.2018
+        Presence.PresenceStatus currentStatus = Presence.PresenceStatus.AWAY;
         if (currentStatus == null) {
             return;
         }
 
-        boolean drawPresence = true;
+        boolean drawPresence = false;
         boolean makeCircleHollow = false;
         switch (currentStatus) {
             case AVAILABLE:
@@ -420,10 +421,10 @@ public class AtlasAvatar extends View {
         }
     }
 
-    private static Diff diff(Set<Identity> oldSet, Set<Identity> newSet) {
+    private static Diff diff(Set<Participant> oldSet, Set<Participant> newSet) {
         Diff diff = new Diff();
         diff.added.addAll(newSet);
-        for (Identity old : oldSet) {
+        for (Participant old : oldSet) {
             if (!newSet.contains(old)) {
                 diff.removed.add(old);
             }
@@ -433,7 +434,7 @@ public class AtlasAvatar extends View {
     }
 
     private static class Diff {
-        public List<Identity> added = new ArrayList<>();
-        public List<Identity> removed = new ArrayList<>();
+        public List<Participant> added = new ArrayList<>();
+        public List<Participant> removed = new ArrayList<>();
     }
 }

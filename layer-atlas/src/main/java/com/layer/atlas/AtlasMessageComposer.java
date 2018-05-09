@@ -46,6 +46,7 @@ import android.widget.TextView;
 import com.layer.atlas.messagetypes.AttachmentSender;
 import com.layer.atlas.messagetypes.MessageSender;
 import com.layer.atlas.messagetypes.text.TextSender;
+import com.layer.atlas.participant.Participant;
 import com.layer.atlas.util.EditTextUtil;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.listeners.LayerTypingIndicatorListener;
@@ -77,6 +78,8 @@ public class AtlasMessageComposer extends FrameLayout {
     private int mCursorColor;
     private Drawable mAttachmentSendersBackground;
 
+    private Participant mAuthenticatedUser;
+
     public AtlasMessageComposer(Context context) {
         super(context);
         initAttachmentMenu(context, null, 0);
@@ -97,10 +100,11 @@ public class AtlasMessageComposer extends FrameLayout {
      *
      * @return this AtlasMessageComposer.
      */
-    public AtlasMessageComposer init(LayerClient layerClient) {
+    public AtlasMessageComposer init(LayerClient layerClient, Participant authenticatedUser) {
         LayoutInflater.from(getContext()).inflate(R.layout.atlas_message_composer, this);
 
         mLayerClient = layerClient;
+        mAuthenticatedUser = authenticatedUser;
 
         mAttachButton = (ImageView) findViewById(R.id.attachment);
         mAttachButton.setOnClickListener(new OnClickListener() {
@@ -163,9 +167,11 @@ public class AtlasMessageComposer extends FrameLayout {
      */
     public AtlasMessageComposer setConversation(Conversation conversation) {
         mConversation = conversation;
-        if (mTextSender != null) mTextSender.setConversation(conversation);
+        if (mTextSender != null) {
+            mTextSender.setConversation(conversation, mAuthenticatedUser.getName());
+        }
         for (AttachmentSender sender : mAttachmentSenders) {
-            sender.setConversation(conversation);
+            sender.setConversation(conversation, mAuthenticatedUser.getName());
         }
         return this;
     }
@@ -190,7 +196,7 @@ public class AtlasMessageComposer extends FrameLayout {
     public AtlasMessageComposer setTextSender(TextSender textSender) {
         mTextSender = textSender;
         mTextSender.init(this.getContext().getApplicationContext(), mLayerClient);
-        mTextSender.setConversation(mConversation);
+        mTextSender.setConversation(mConversation, mAuthenticatedUser.getName());
         if (mMessageSenderCallback != null) mTextSender.setCallback(mMessageSenderCallback);
         return this;
     }
@@ -207,7 +213,7 @@ public class AtlasMessageComposer extends FrameLayout {
                 throw new NullPointerException("Attachment handlers must have at least a title or icon specified.");
             }
             sender.init(this.getContext().getApplicationContext(), mLayerClient);
-            sender.setConversation(mConversation);
+            sender.setConversation(mConversation, mAuthenticatedUser.getName());
             if (mMessageSenderCallback != null) sender.setCallback(mMessageSenderCallback);
             mAttachmentSenders.add(sender);
             addAttachmentMenuItem(sender);
