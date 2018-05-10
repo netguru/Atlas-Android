@@ -318,13 +318,12 @@ public class AtlasAvatar extends View {
     }
 
     private void drawPresence(Canvas canvas, Participant identity) {
-//        Presence.PresenceStatus currentStatus = identity.getPresenceStatus();//TODO: Display presence, different task 09.05.2018
-        Presence.PresenceStatus currentStatus = Presence.PresenceStatus.AWAY;
+        Presence.PresenceStatus currentStatus = identity.getPresenceStatus();
         if (currentStatus == null) {
             return;
         }
 
-        boolean drawPresence = false;
+        boolean drawPresence = true;
         boolean makeCircleHollow = false;
         switch (currentStatus) {
             case AVAILABLE:

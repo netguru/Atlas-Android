@@ -151,7 +151,10 @@ public class AvatarTypingIndicatorFactory implements AtlasTypingIndicator.Typing
                             tag.mActives.add(avatar);
                             l.addView(avatar, 0);
                             Participant participant = findParticipant(typist.getUserId(), participants);
-                            avatar.setParticipants(participant);
+                            if (participant != null) {
+                                participant.setPresenceStatus(typist.getPresenceStatus());
+                                avatar.setParticipants(participant);
+                            }
                         }
                     }
                 }, new Consumer<Throwable>() {
