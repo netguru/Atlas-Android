@@ -2,6 +2,7 @@ package com.layer.atlas.adapters;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -236,11 +237,11 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         Context context = viewHolder.itemView.getContext();
 
         viewHolder.setConversation(conversation);
-        final Set<Identity> participants = conversation.getParticipants();
-        participants.remove(mLayerClient.getAuthenticatedUser());
+        final Set<Identity> identities = conversation.getParticipants();
+        identities.remove(mLayerClient.getAuthenticatedUser());
 
         // Add the position to the positions map for Identity updates
-        mIdentityEventListener.addIdentityPosition(position, participants);
+        mIdentityEventListener.addIdentityPosition(position, identities);
 
 
         viewHolder.mTitleView.setText("");
@@ -259,11 +260,12 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         }
 
         compositeDisposable.add(chatParticipantProvider
-                .getParticipants(Util.getIdsFromIdentities(participants))
+                .getParticipants(Util.getIdsFromIdentities(identities))
                 .subscribe(new Consumer<List<Participant>>() {
                     @Override
                     public void accept(List<Participant> participants) throws Exception {
                         if (!participants.isEmpty()) {
+                            setPresenceStatus(participants, identities);
                             viewHolder.mTitleView.setText(ConversationFormatter.getConversationTitle(participants, conversation));
                             if (participants.size() > 1) {
                                 sortAvatars(participants, conversation, viewHolder);
@@ -278,6 +280,25 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
                         Log.e("Error during participants downloading", throwable);
                     }
                 }));
+    }
+
+    private void setPresenceStatus(List<Participant> participants, Set<Identity> identities) {
+        for (Identity identity : identities) {
+            Participant participant = findParticipant(identity.getUserId(), participants);
+            if (participant != null && identity.getPresenceStatus() != null) {
+                participant.setPresenceStatus(identity.getPresenceStatus());
+            }
+        }
+    }
+
+    @Nullable
+    private Participant findParticipant(String userId, List<Participant> participants) {
+        for (Participant participant : participants) {
+            if (userId.equals(participant.getId())) {
+                return participant;
+            }
+        }
+        return null;
     }
 
     private void sortAvatars(final List<Participant> participants,

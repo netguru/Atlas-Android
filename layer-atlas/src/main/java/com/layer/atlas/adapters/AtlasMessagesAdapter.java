@@ -401,11 +401,12 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
             // Avatars
             if (oneOnOne) {
                 if (mShouldShowAvatarInOneOnOneConversations) {
-                    Identity sender = message.getSender();
+                    final Identity sender = message.getSender();
                     if (sender != null) {
                         participantAction(sender.getUserId(), new Consumer<Participant>() {
                             @Override
                             public void accept(Participant participant) throws Exception {
+                                participant.setPresenceStatus(sender.getPresenceStatus());
                                 viewHolder.mAvatar.setVisibility(View.VISIBLE);
                                 viewHolder.mAvatar.setParticipants(participant);
                             }
@@ -415,12 +416,13 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
                     viewHolder.mAvatar.setVisibility(View.GONE);
                 }
             } else if (cluster.mClusterWithNext == null || cluster.mClusterWithNext != ClusterType.LESS_THAN_MINUTE) {
-                Identity sender = message.getSender();
+                final Identity sender = message.getSender();
                 if (sender != null) {
                     participantAction(sender.getUserId(), new Consumer<Participant>() {
                         @Override
                         public void accept(Participant participant) throws Exception {
                             // Last message in cluster
+                            participant.setPresenceStatus(sender.getPresenceStatus());
                             viewHolder.mAvatar.setVisibility(View.VISIBLE);
                             viewHolder.mAvatar.setParticipants(participant);
                             viewHolder.mAvatar.setOnClickListener(new View.OnClickListener() {

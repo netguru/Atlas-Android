@@ -1,5 +1,9 @@
 package com.layer.atlas.participant;
 
+import android.support.annotation.Nullable;
+
+import com.layer.sdk.messaging.Presence;
+
 public interface Participant extends Comparable<Participant> {
 
     String getId();
@@ -17,4 +21,9 @@ public interface Participant extends Comparable<Participant> {
     String getFirstName();
 
     String getAvatarImageUrl();
+
+    @Nullable
+    Presence.PresenceStatus getPresenceStatus();
+
+    void setPresenceStatus(Presence.PresenceStatus presenceStatus);
 }
