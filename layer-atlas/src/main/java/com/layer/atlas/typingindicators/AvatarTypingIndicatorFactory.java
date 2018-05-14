@@ -117,12 +117,8 @@ public class AvatarTypingIndicatorFactory implements AtlasTypingIndicator.Typing
                             if (!avatar.getParticipants().iterator().hasNext())
                                 return;
 
-                            String existingTypistKey = avatar.getParticipants().iterator().next().getId();
-                            Identity existingTypist = findTypist(existingTypistKey, typingUserIds.keySet());
-                            if (existingTypist == null) {
-                                return;
-                            }
-                            if (!typingUserIds.containsKey(existingTypist) || (typingUserIds.get(existingTypist) == LayerTypingIndicatorListener.TypingIndicator.FINISHED)) {
+                            Identity existingTypist = findTypist(avatar.getParticipants().iterator().next().getId(), typingUserIds.keySet());
+                            if (existingTypist == null || (typingUserIds.get(existingTypist) == LayerTypingIndicatorListener.TypingIndicator.FINISHED)) {
                                 // Newly finished
                                 newlyFinished.add(avatar);
                             } else {
