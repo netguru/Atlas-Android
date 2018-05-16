@@ -17,7 +17,9 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     >
+
 
     <com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
         android:id="@+id/image_popup"
@@ -36,4 +38,12 @@
         android:visibility="gone"
         android:max="100"
         />
+
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/atlas_app_bar_background"
+        android:minHeight="?attr/actionBarSize"
+        app:elevation="4dp" />
 </FrameLayout>

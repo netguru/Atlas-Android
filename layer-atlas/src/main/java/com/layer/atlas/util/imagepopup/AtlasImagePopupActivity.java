@@ -1,10 +1,22 @@
 package com.layer.atlas.util.imagepopup;
 
-import android.app.Activity;
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.ContentLoadingProgressBar;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.Toast;
 
 import com.davemorrissey.labs.subscaleview.ImageSource;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
@@ -16,15 +28,22 @@ import com.layer.sdk.LayerClient;
 import com.layer.sdk.listeners.LayerProgressListener;
 import com.layer.sdk.messaging.MessagePart;
 
+import java.util.List;
+import java.util.UUID;
+
 /**
  * AtlasImagePopupActivity implements a ful resolution image viewer Activity.  This Activity
  * registers with the LayerClient as a LayerProgressListener to monitor progress.
  */
-public class AtlasImagePopupActivity extends Activity implements LayerProgressListener.BackgroundThread.Weak, SubsamplingScaleImageView.OnImageEventListener {
+public class AtlasImagePopupActivity extends AppCompatActivity implements LayerProgressListener.BackgroundThread.Weak, SubsamplingScaleImageView.OnImageEventListener {
+
+    private static final int WRITE_PERMISSION_REQUEST = 101;
+
     private static LayerClient sLayerClient;
 
     private SubsamplingScaleImageView mImageView;
     private ContentLoadingProgressBar mProgressBar;
+    private Toolbar toolbar;
     private Uri mMessagePartId;
 
     @Override
@@ -35,6 +54,13 @@ public class AtlasImagePopupActivity extends Activity implements LayerProgressLi
         setContentView(R.layout.atlas_image_popup);
         mImageView = (SubsamplingScaleImageView) findViewById(R.id.image_popup);
         mProgressBar = (ContentLoadingProgressBar) findViewById(R.id.image_popup_progress);
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+
+        setSupportActionBar(toolbar);
+        ActionBar supportActionBar = getSupportActionBar();
+        if (supportActionBar != null) {
+            supportActionBar.setDisplayShowTitleEnabled(false);
+        }
 
         mImageView.setPanEnabled(true);
         mImageView.setZoomEnabled(true);
@@ -103,6 +129,65 @@ public class AtlasImagePopupActivity extends Activity implements LayerProgressLi
         MessagePartRegionDecoder.init(layerClient);
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.atlas_image_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+       if(item.getItemId() == R.id.action_save) {
+           if(checkPermission()) {
+               saveImageToGallery();
+           } else {
+               requestPermission();
+           }
+           return true;
+       }
+       return super.onOptionsItemSelected(item);
+    }
+
+    private void saveImageToGallery() {
+        try {
+            String extractedID = UUID.randomUUID().toString();
+            List<String> path = mMessagePartId.getPathSegments();
+            if(path !=null && path.size()>2)
+                extractedID = path.get(path.size()-1);
+            MessagePartDecoder decoderFactory = new MessagePartDecoder();
+            Bitmap bitmap = decoderFactory.decode(this, mMessagePartId);
+            MediaStore.Images.Media.insertImage(
+                    getContentResolver(),
+                    bitmap,
+                    extractedID,
+                    ""
+            );
+            Toast.makeText(this, R.string.atlas_save_media_success, Toast.LENGTH_LONG).show();
+        } catch (Throwable ex){
+            Toast.makeText(this, R.string.atlas_save_media_error, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void requestPermission() {
+        ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                WRITE_PERMISSION_REQUEST);
+    }
+
+    private boolean checkPermission() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case WRITE_PERMISSION_REQUEST: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                    saveImageToGallery();
+            }
+            return;
+        }
+    }
 
     //==============================================================================================
     // SubsamplingScaleImageView.OnImageEventListener: hide progress bar when full part loaded

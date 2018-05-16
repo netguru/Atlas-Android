@@ -26,6 +26,8 @@
     <color name="atlas_delete_background">#FFFF5252</color>
     <color name="atlas_item_background">@android:color/white</color>
 
+    <color name="atlas_app_bar_background">#20000000</color>
+
     <color name="atlas_floating_button">@color/atlas_color_primary_blue</color>
 
     <color name="atlas_text_black">@android:color/black</color>
