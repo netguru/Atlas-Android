@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.support.annotation.NonNull;
 import android.support.v4.widget.ContentLoadingProgressBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
@@ -36,8 +37,7 @@ import com.squareup.picasso.Transformation;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.lang.ref.WeakReference;
-import java.util.List;
+import java.util.Set;
 
 import static com.layer.sdk.messaging.MessagePart.TransferStatus.COMPLETE;
 import static com.layer.sdk.messaging.MessagePart.TransferStatus.DOWNLOADING;
@@ -93,15 +93,15 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
     public void bindCellHolder(final CellHolder cellHolder, final Info info, final Message message, CellHolderSpecs specs) {
         cellHolder.mImageView.setTag(info);
         cellHolder.mImageView.setOnClickListener(this);
-        MessagePart preview = ThreePartImageUtils.getPreviewPart(message);
+        final ThreePartMessageParts parts = new ThreePartMessageParts(message);
 
         // Info width and height are the rotated width and height, though the content is not pre-rotated.
         int[] cellDims = Util.scaleDownInside(info.width, info.height, specs.maxWidth, specs.maxHeight);
-        ViewGroup.LayoutParams params = cellHolder.mImageView.getLayoutParams();
+        final ViewGroup.LayoutParams params = cellHolder.mImageView.getLayoutParams();
         params.width = cellDims[0];
         params.height = cellDims[1];
         cellHolder.mProgressBar.show();
-        RequestCreator creator = mPicasso.load(preview.getId()).tag(PICASSO_TAG).placeholder(PLACEHOLDER);
+        RequestCreator creator = mPicasso.load(parts.getPreviewPart().getId()).tag(PICASSO_TAG).placeholder(PLACEHOLDER);
 
         if (cellDims[0] > 0 && cellDims[1] > 0) {
             switch (info.orientation) {
@@ -137,20 +137,17 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
         cellHolder.mImageView.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                MessagePart full = ThreePartImageUtils.getFullPart(message);
-                MessagePart preview = ThreePartImageUtils.getPreviewPart(message);
-                MessagePart info = ThreePartImageUtils.getInfoPart(message);
 
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 options.inJustDecodeBounds = true;
 
-                BitmapFactory.decodeStream(full.getDataStream(), null, options);
+                BitmapFactory.decodeStream(parts.getFullPart().getDataStream(), null, options);
                 Log.v("Full size: " + options.outWidth + "x" + options.outHeight);
 
-                BitmapFactory.decodeStream(preview.getDataStream(), null, options);
+                BitmapFactory.decodeStream(parts.getPreviewPart().getDataStream(), null, options);
                 Log.v("Preview size: " + options.outWidth + "x" + options.outHeight);
 
-                Log.v("Info: " + new String(info.getData()));
+                Log.v("Info: " + new String(parts.getInfoPart().getData()));
 
                 return false;
             }
@@ -257,11 +254,23 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
     //==============================================================================================
 
     public boolean isType(Message message) {
-        List<MessagePart> parts = message.getMessageParts();
-        return parts.size() == 3 &&
-                parts.get(ThreePartImageUtils.PART_INDEX_FULL).getMimeType().startsWith("image/") &&
-                parts.get(ThreePartImageUtils.PART_INDEX_PREVIEW).getMimeType().equals(ThreePartImageUtils.MIME_TYPE_PREVIEW) &&
-                parts.get(ThreePartImageUtils.PART_INDEX_INFO).getMimeType().equals(ThreePartImageUtils.MIME_TYPE_INFO);
+        Set<MessagePart> parts = message.getMessageParts();
+        if (parts.size() != 3) {
+            return false;
+        }
+        boolean hasInfoPart = false;
+        boolean hasPreviewPart = false;
+        boolean hasFullPart = false;
+        for (MessagePart part : parts) {
+            if (part.getMimeType().equals(ThreePartImageUtils.MIME_TYPE_INFO)) {
+                hasInfoPart = true;
+            } else if (part.getMimeType().equals(ThreePartImageUtils.MIME_TYPE_PREVIEW)) {
+                hasPreviewPart = true;
+            } else if (part.getMimeType().startsWith("image/")) {
+                hasFullPart = true;
+            }
+        }
+        return hasInfoPart && hasPreviewPart && hasFullPart;
     }
 
     @Override
@@ -274,16 +283,16 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
     }
 
     public static Info getInfo(Message message) {
+        ThreePartMessageParts parts = new ThreePartMessageParts(message);
+
         try {
             Info info = new Info();
-            MessagePart fullPreview = ThreePartImageUtils.getFullPart(message);
-            JSONObject infoObject = new JSONObject(new String(ThreePartImageUtils.getInfoPart(message).getData()));
+            JSONObject infoObject = new JSONObject(new String(parts.getInfoPart().getData()));
             info.orientation = infoObject.getInt("orientation");
             info.width = infoObject.getInt("width");
             info.height = infoObject.getInt("height");
-            info.previewPartId = ThreePartImageUtils.getPreviewPart(message).getId();
-            info.fullPartId = fullPreview.getId();
-            info.fullPartSizeInBytes = fullPreview.getSize();
+            info.previewPartId = parts.getPreviewPart().getId();
+            info.fullPartId = parts.getFullPart().getId();
             return info;
         } catch (JSONException e) {
             if (Log.isLoggable(Log.ERROR)) {
@@ -346,6 +355,42 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
         public CellHolder(View view) {
             mImageView = (ImageView) view.findViewById(R.id.cell_image);
             mProgressBar = (ContentLoadingProgressBar) view.findViewById(R.id.cell_progress);
+        }
+    }
+
+    private static class ThreePartMessageParts {
+        private MessagePart mInfoPart;
+        private MessagePart mPreviewPart;
+        private MessagePart mFullPart;
+        public ThreePartMessageParts(Message message) {
+            Set<MessagePart> messageParts = message.getMessageParts();
+            for (MessagePart part : messageParts) {
+                if (part.getMimeType().equals(ThreePartImageUtils.MIME_TYPE_INFO)) {
+                    mInfoPart = part;
+                } else if (part.getMimeType().equals(ThreePartImageUtils.MIME_TYPE_PREVIEW)) {
+                    mPreviewPart = part;
+                } else if (part.getMimeType().startsWith("image/")) {
+                    mFullPart = part;
+                }
+            }
+            if (mInfoPart == null || mPreviewPart == null || mFullPart == null) {
+                if (Log.isLoggable(Log.ERROR)) {
+                    Log.e("Incorrect parts for a three part image: " + messageParts);
+                }
+                throw new IllegalArgumentException("Incorrect parts for a three part image: " + messageParts);
+            }
+        }
+        @NonNull
+        public MessagePart getInfoPart() {
+            return mInfoPart;
+        }
+        @NonNull
+        public MessagePart getPreviewPart() {
+            return mPreviewPart;
+        }
+        @NonNull
+        public MessagePart getFullPart() {
+            return mFullPart;
         }
     }
 }

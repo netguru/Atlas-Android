@@ -49,18 +49,6 @@ public class ThreePartImageUtils {
     public static final String MIME_TYPE_FILTER_IMAGE = "image/*";
     public static final String MIME_TYPE_IMAGE_JPEG = "image/jpeg";
 
-    public static MessagePart getInfoPart(Message message) {
-        return message.getMessageParts().get(PART_INDEX_INFO);
-    }
-
-    public static MessagePart getPreviewPart(Message message) {
-        return message.getMessageParts().get(PART_INDEX_PREVIEW);
-    }
-
-    public static MessagePart getFullPart(Message message) {
-        return message.getMessageParts().get(PART_INDEX_FULL);
-    }
-
     /**
      * The methods by which the ThreePartImageMessage is constructed differs by Android API versions
      * since the way in which Android handles files from ContentProviders has changed across versions
