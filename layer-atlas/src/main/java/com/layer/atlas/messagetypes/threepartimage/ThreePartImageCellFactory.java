@@ -38,7 +38,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.ref.WeakReference;
-import java.util.List;
 import java.util.Set;
 
 import static com.layer.sdk.messaging.MessagePart.TransferStatus.COMPLETE;
@@ -364,6 +363,7 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
         private MessagePart mInfoPart;
         private MessagePart mPreviewPart;
         private MessagePart mFullPart;
+
         public ThreePartMessageParts(Message message) {
             Set<MessagePart> messageParts = message.getMessageParts();
             for (MessagePart part : messageParts) {
@@ -382,14 +382,17 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
                 throw new IllegalArgumentException("Incorrect parts for a three part image: " + messageParts);
             }
         }
+
         @NonNull
         public MessagePart getInfoPart() {
             return mInfoPart;
         }
+
         @NonNull
         public MessagePart getPreviewPart() {
             return mPreviewPart;
         }
+
         @NonNull
         public MessagePart getFullPart() {
             return mFullPart;
