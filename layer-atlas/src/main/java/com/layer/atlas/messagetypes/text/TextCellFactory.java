@@ -53,7 +53,7 @@ public class TextCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder
 
     @Override
     public TextInfo parseContent(LayerClient layerClient, Message message) {
-        MessagePart part = message.getMessageParts().get(0);
+        MessagePart part = message.getMessageParts().iterator().next();
         String text = part.isContentReady() ? new String(part.getData()) : null;
         return new TextInfo(text, "");
     }
@@ -68,10 +68,11 @@ public class TextCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder
         }
 
         String textMessage = parsed.getString();
+        MessagePart part = message.getMessageParts().iterator().next();
         //This string will be null if the message part content is not Ready
         if (textMessage == null) {
-            if (message.getMessageParts().get(0).isContentReady()) {
-                textMessage = new String(message.getMessageParts().get(0).getData());
+            if (part.isContentReady()) {
+                textMessage = new String(part.getData());
             } else {
                 downloadMessage(message, cellHolder);
                 cellHolder.mProgressBar.setVisibility(View.VISIBLE);
@@ -84,7 +85,7 @@ public class TextCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder
     }
 
     private void downloadMessage(final Message message, final CellHolder cellHolder) {
-        final MessagePart part = message.getMessageParts().get(0);
+        final MessagePart part = message.getMessageParts().iterator().next();
         final TextView textView = cellHolder.mTextView;
         mTextViewUriHashMap.put(textView, message.getId());
         LayerProgressListener layerProgressListener = new LayerProgressListener.Weak() {
@@ -121,13 +122,14 @@ public class TextCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder
     }
 
     public boolean isType(Message message) {
-        return message.getMessageParts().size() == 1 && message.getMessageParts().get(0).getMimeType().equals(MIME_TYPE);
+        return message.getMessageParts().size() == 1
+                && message.getMessageParts().iterator().next().getMimeType().equals(MIME_TYPE);
     }
 
     @Override
     public String getPreviewText(Context context, Message message) {
         if (isType(message)) {
-            MessagePart part = message.getMessageParts().get(0);
+            MessagePart part = message.getMessageParts().iterator().next();
             // For large text content, the MessagePart may not be downloaded yet.
             return part.isContentReady() ? new String(part.getData()) : "";
         } else {

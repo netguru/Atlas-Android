@@ -10,12 +10,12 @@ ext.artifactIdName = 'layer-atlas'
 group 'com.layer.atlas'
 
 android {
-    compileSdkVersion 26
-    buildToolsVersion '26.0.2'
+    compileSdkVersion 27
+    buildToolsVersion '27.0.3'
 
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 25
+        targetSdkVersion 27
         versionName = "${version}"
 
         consumerProguardFiles 'proguard-rules.pro'
@@ -45,7 +45,7 @@ ext {
 
 dependencies {
     // Layer SDK
-    compile('com.layer.sdk:layer-sdk:0.23.26') {
+    compile('com.layer.sdk:layer-sdk:4.0.2') {
         exclude group: 'com.google.firebase'
     }
     compile 'org.slf4j:slf4j-nop:1.7.2'
