@@ -26,6 +26,8 @@ import com.squareup.picasso.Picasso;
 import com.squareup.picasso.RequestCreator;
 import com.squareup.picasso.Transformation;
 
+import java.util.Set;
+
 /**
  * BasicImage handles non-ThreePartImage images.  It relies on the ThreePartImage RequestHandler and does not handle image rotation.
  */
@@ -124,12 +126,9 @@ public class SinglePartImageCellFactory extends AtlasCellFactory<SinglePartImage
 
     @Override
     public boolean isType(Message message) {
-        for (MessagePart part : message.getMessageParts()) {
-            if (part.getMimeType().startsWith("image/")) {
-                return true;
-            }
-        }
-        return false;
+        Set<MessagePart> parts = message.getMessageParts();
+        return parts.size() == 1
+                && parts.iterator().next().getMimeType().startsWith("image/");
     }
 
     @Override
