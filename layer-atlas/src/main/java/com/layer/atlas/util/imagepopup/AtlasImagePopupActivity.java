@@ -148,23 +148,44 @@ public class AtlasImagePopupActivity extends AppCompatActivity implements LayerP
        return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case WRITE_PERMISSION_REQUEST: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                    saveImageToGallery();
+            }
+            return;
+        }
+    }
+
     private void saveImageToGallery() {
+        String extractedID = UUID.randomUUID().toString();
+        List<String> path = mMessagePartId.getPathSegments();
+        if(path !=null && path.size()>2)
+            extractedID = path.get(path.size()-1);
+        MessagePartDecoder decoderFactory = new MessagePartDecoder();
+        boolean saveSuccess = true;
+        Bitmap bitmap = null;
         try {
-            String extractedID = UUID.randomUUID().toString();
-            List<String> path = mMessagePartId.getPathSegments();
-            if(path !=null && path.size()>2)
-                extractedID = path.get(path.size()-1);
-            MessagePartDecoder decoderFactory = new MessagePartDecoder();
-            Bitmap bitmap = decoderFactory.decode(this, mMessagePartId);
-            MediaStore.Images.Media.insertImage(
+            bitmap = decoderFactory.decode(this, mMessagePartId);
+        } catch (Throwable ex){
+            saveSuccess = false;
+        }
+
+        if(saveSuccess) {
+            saveSuccess = MediaStore.Images.Media.insertImage(
                     getContentResolver(),
                     bitmap,
                     extractedID,
                     ""
-            );
-            Toast.makeText(this, R.string.atlas_save_media_success, Toast.LENGTH_LONG).show();
-        } catch (Throwable ex){
-            Toast.makeText(this, R.string.atlas_save_media_error, Toast.LENGTH_LONG).show();
+            ) != null;
+        }
+
+        if(saveSuccess){
+            Toast.makeText(this, R.string.atlas_save_media_success, Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, R.string.atlas_save_media_error, Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -176,17 +197,6 @@ public class AtlasImagePopupActivity extends AppCompatActivity implements LayerP
 
     private boolean checkPermission() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case WRITE_PERMISSION_REQUEST: {
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
-                    saveImageToGallery();
-            }
-            return;
-        }
     }
 
     //==============================================================================================
