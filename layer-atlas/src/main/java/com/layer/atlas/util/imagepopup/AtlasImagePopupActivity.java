@@ -165,28 +165,25 @@ public class AtlasImagePopupActivity extends AppCompatActivity implements LayerP
         if(path !=null && path.size()>2)
             extractedID = path.get(path.size()-1);
         MessagePartDecoder decoderFactory = new MessagePartDecoder();
-        boolean saveSuccess = true;
         Bitmap bitmap = null;
         try {
             bitmap = decoderFactory.decode(this, mMessagePartId);
         } catch (Throwable ex){
-            saveSuccess = false;
+            Log.e(ex.getMessage(), ex);
         }
-
-        if(saveSuccess) {
-            saveSuccess = MediaStore.Images.Media.insertImage(
-                    getContentResolver(),
-                    bitmap,
-                    extractedID,
-                    ""
-            ) != null;
-        }
-
-        if(saveSuccess){
+        if(insertImage(bitmap, extractedID))
             Toast.makeText(this, R.string.atlas_save_media_success, Toast.LENGTH_SHORT).show();
-        } else {
+        else
             Toast.makeText(this, R.string.atlas_save_media_error, Toast.LENGTH_SHORT).show();
-        }
+    }
+
+    private boolean insertImage(Bitmap bitmap, String title){
+        return bitmap != null && MediaStore.Images.Media.insertImage(
+                getContentResolver(),
+                bitmap,
+                title,
+                ""
+        ) != null;
     }
 
     private void requestPermission() {

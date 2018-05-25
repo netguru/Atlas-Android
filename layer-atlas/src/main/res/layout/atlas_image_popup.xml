@@ -20,7 +20,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     >
 
-
     <com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
         android:id="@+id/image_popup"
         xmlns:android="http://schemas.android.com/apk/res/android"
@@ -46,4 +45,5 @@
         android:background="@color/atlas_app_bar_background"
         android:minHeight="?attr/actionBarSize"
         app:elevation="4dp" />
+
 </FrameLayout>

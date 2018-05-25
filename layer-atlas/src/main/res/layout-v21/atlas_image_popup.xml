@@ -20,8 +20,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     >
 
-
-
     <com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
         android:id="@+id/image_popup"
         android:layout_width="match_parent"
