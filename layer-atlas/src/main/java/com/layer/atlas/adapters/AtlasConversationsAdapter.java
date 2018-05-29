@@ -14,6 +14,7 @@ import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
 import com.layer.atlas.messagetypes.generic.GenericCellFactory;
 import com.layer.atlas.messagetypes.location.LocationCellFactory;
+import com.layer.atlas.messagetypes.meeting.MeetingCreatedCellFactory;
 import com.layer.atlas.messagetypes.singlepartimage.SinglePartImageCellFactory;
 import com.layer.atlas.messagetypes.text.TextCellFactory;
 import com.layer.atlas.messagetypes.threepartimage.ThreePartImageCellFactory;
@@ -435,7 +436,8 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             mDefaultCellFactories.addAll(Arrays.asList(new TextCellFactory(),
                     new ThreePartImageCellFactory(mLayerClient, mPicasso),
                     new LocationCellFactory(mPicasso),
-                    new SinglePartImageCellFactory(mLayerClient, mPicasso)));
+                    new SinglePartImageCellFactory(mLayerClient, mPicasso),
+                    new MeetingCreatedCellFactory(null)));
         }
 
         return mDefaultCellFactories;

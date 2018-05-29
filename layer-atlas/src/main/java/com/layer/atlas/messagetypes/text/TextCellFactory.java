@@ -150,8 +150,8 @@ public class TextCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder
     }
 
     public static class CellHolder extends AtlasCellFactory.CellHolder {
-        TextView mTextView;
-        ContentLoadingProgressBar mProgressBar;
+        public TextView mTextView;
+        public ContentLoadingProgressBar mProgressBar;
 
         public CellHolder(View view) {
             mTextView = (TextView) view.findViewById(R.id.cell_text);
