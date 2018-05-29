@@ -69,6 +69,7 @@ import io.reactivex.functions.Consumer;
  */
 public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdapter.ViewHolder> implements AtlasBaseAdapter<Message>, RecyclerViewController.Callback {
     private final static int VIEW_TYPE_FOOTER = 0;
+    private static final String BOT_ID_PREFIX = "transient_";
 
     protected final LayerClient mLayerClient;
     protected final Picasso mPicasso;
@@ -380,12 +381,16 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
             if (!oneOnOne && (cluster.mClusterWithPrevious == null || cluster.mClusterWithPrevious == ClusterType.NEW_SENDER)) {
                 Identity sender = message.getSender();
                 if (sender != null) {
-                    participantAction(sender.getUserId(), new Consumer<Participant>() {
-                        @Override
-                        public void accept(Participant participant) throws Exception {
-                            viewHolder.mUserName.setText(participant.getName());
-                        }
-                    });
+                    if (isBot(sender)) {
+                        viewHolder.mUserName.setText(sender.getDisplayName());
+                    } else {
+                        participantAction(sender.getUserId(), new Consumer<Participant>() {
+                            @Override
+                            public void accept(Participant participant) throws Exception {
+                                viewHolder.mUserName.setText(participant.getName());
+                            }
+                        });
+                    }
 
                 } else {
                     viewHolder.mUserName.setText(R.string.atlas_message_item_unknown_user);
@@ -418,23 +423,27 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
             } else if (cluster.mClusterWithNext == null || cluster.mClusterWithNext != ClusterType.LESS_THAN_MINUTE) {
                 final Identity sender = message.getSender();
                 if (sender != null) {
-                    participantAction(sender.getUserId(), new Consumer<Participant>() {
-                        @Override
-                        public void accept(Participant participant) throws Exception {
-                            // Last message in cluster
-                            participant.setPresenceStatus(sender.getPresenceStatus());
-                            viewHolder.mAvatar.setVisibility(View.VISIBLE);
-                            viewHolder.mAvatar.setParticipants(participant);
-                            viewHolder.mAvatar.setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View view) {
-                                    if (avatarClickListener != null && message.getSender() != null) {
-                                        avatarClickListener.onAvatarClicked(message.getSender());
+                    if (isBot(sender)) {
+                        viewHolder.mAvatar.setVisibility(View.INVISIBLE);// Invisible for clustered messages to preserve proper spacing
+                    } else {
+                        participantAction(sender.getUserId(), new Consumer<Participant>() {
+                            @Override
+                            public void accept(Participant participant) throws Exception {
+                                // Last message in cluster
+                                participant.setPresenceStatus(sender.getPresenceStatus());
+                                viewHolder.mAvatar.setVisibility(View.VISIBLE);
+                                viewHolder.mAvatar.setParticipants(participant);
+                                viewHolder.mAvatar.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View view) {
+                                        if (avatarClickListener != null && message.getSender() != null) {
+                                            avatarClickListener.onAvatarClicked(message.getSender());
+                                        }
                                     }
-                                }
-                            });
-                        }
-                    });
+                                });
+                            }
+                        });
+                    }
                 }
 
                 // Add the position to the positions map for Identity updates
@@ -465,6 +474,10 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
         viewHolder.mCellHolderSpecs.maxWidth = maxWidth;
         viewHolder.mCellHolderSpecs.maxHeight = maxHeight;
         cellType.mCellFactory.bindCellHolder(cellHolder, cellType.mCellFactory.getParsedContent(mLayerClient, message), message, viewHolder.mCellHolderSpecs);
+    }
+
+    private boolean isBot(Identity sender) {
+        return sender.getUserId().startsWith(BOT_ID_PREFIX);
     }
 
     private void participantAction(@NonNull String attendanceId, Consumer<Participant> actionConsumer) {
