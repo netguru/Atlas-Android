@@ -18,6 +18,7 @@ import com.layer.atlas.messagetypes.meeting.MeetingCreatedCellFactory;
 import com.layer.atlas.messagetypes.singlepartimage.SinglePartImageCellFactory;
 import com.layer.atlas.messagetypes.text.TextCellFactory;
 import com.layer.atlas.messagetypes.threepartimage.ThreePartImageCellFactory;
+import com.layer.atlas.participant.BotParticipant;
 import com.layer.atlas.participant.ChatParticipantProvider;
 import com.layer.atlas.participant.Participant;
 import com.layer.atlas.util.ConversationFormatter;
@@ -78,6 +79,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
 
     private final CompositeDisposable compositeDisposable = new CompositeDisposable();
     private final ChatParticipantProvider chatParticipantProvider;
+    public static final String BOT_PREFIX = "bot";
 
     public AtlasConversationsAdapter(Context context, LayerClient client, Picasso picasso, ConversationFormatter conversationFormatter, ChatParticipantProvider chatParticipantProvider) {
         this(context, client, picasso, null, conversationFormatter, chatParticipantProvider);
@@ -259,7 +261,23 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
                 viewHolder.mTimeView.setText(Util.formatTime(context, lastMessage.getReceivedAt(), mTimeFormat, mDateFormat));
             }
         }
+        //Bind bot or normal participants
+        if (identities.size() == 1 && identities.iterator().hasNext()) {
+            Identity identity = identities.iterator().next();
+            if (identity.getMetadata().containsKey(BOT_PREFIX)) {
+                viewHolder.mTitleView.setText(ConversationFormatter.getConversationMetadataTitle(conversation));
+                viewHolder.mAvatarCluster.setParticipants(BotParticipant.from(identity));
+            } else {
+                bindParticipants(viewHolder, conversation, identities);
+            }
+        } else {
+            bindParticipants(viewHolder, conversation, identities);
+        }
+    }
 
+    private void bindParticipants(final ViewHolder viewHolder,
+                                  final Conversation conversation,
+                                  final Set<Identity> identities) {
         compositeDisposable.add(chatParticipantProvider
                 .getParticipants(Util.getIdsFromIdentities(identities))
                 .subscribe(new Consumer<List<Participant>>() {
