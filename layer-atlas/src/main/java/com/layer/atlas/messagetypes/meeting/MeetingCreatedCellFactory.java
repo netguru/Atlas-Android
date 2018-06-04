@@ -31,7 +31,7 @@ import java.util.WeakHashMap;
 import io.reactivex.subjects.PublishSubject;
 
 public class MeetingCreatedCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder, MeetingCreatedCellFactory.MeetingInfo> {
-    private final static String MIME_TYPE_MEETING = "application/vnd.websummit.meetingCreated+json";
+    private final static String MIME_TYPE_MEETING = "application/vnd.websummit.meeting+json";
     private static final String MEETING_ID_JSON_KEY = "meeting_id";
     private static final String MEETING_BACKGROUND_COLOR_JSON_KEY = "background_color";
 
