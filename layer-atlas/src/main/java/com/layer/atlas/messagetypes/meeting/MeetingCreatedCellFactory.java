@@ -34,6 +34,7 @@ public class MeetingCreatedCellFactory extends AtlasCellFactory<TextCellFactory.
     private final static String MIME_TYPE_MEETING = "application/vnd.websummit.meeting+json";
     private static final String MEETING_ID_JSON_KEY = "meeting_id";
     private static final String MEETING_BACKGROUND_COLOR_JSON_KEY = "background_color";
+    private static final String MEETING_FONT_COLOR_JSON_KEY = "font_color";
 
     //This is used to bind TextView  to the exact message to ensure the right TextView is updated
     private Map<TextView, Uri> mTextViewUriHashMap = new WeakHashMap<>();
@@ -69,18 +70,22 @@ public class MeetingCreatedCellFactory extends AtlasCellFactory<TextCellFactory.
         String text = parts.getTextPart().isContentReady() ? new String(parts.getTextPart().getData()) : null;
         String meetingId = null;
         String backgroundColor = null;
+        String fontColor = null;
         try {
             JSONObject infoObject = new JSONObject(new String(parts.getMeetingPart().getData()));
             meetingId = infoObject.getString(MEETING_ID_JSON_KEY);
             if (infoObject.has(MEETING_BACKGROUND_COLOR_JSON_KEY)) {
                 backgroundColor = infoObject.getString(MEETING_BACKGROUND_COLOR_JSON_KEY);
             }
+            if (infoObject.has(MEETING_FONT_COLOR_JSON_KEY)) {
+                fontColor = infoObject.getString(MEETING_FONT_COLOR_JSON_KEY);
+            }
         } catch (JSONException e) {
             if (Log.isLoggable(Log.ERROR)) {
                 Log.e(e.getMessage(), e);
             }
         }
-        return new MeetingInfo(text, meetingId, backgroundColor);
+        return new MeetingInfo(text, meetingId, backgroundColor, fontColor);
     }
 
     @Override
@@ -97,6 +102,9 @@ public class MeetingCreatedCellFactory extends AtlasCellFactory<TextCellFactory.
         } else {
             ((GradientDrawable) cellHolder.root.getBackground()).setColor(mMessageStyle.getOtherBubbleColor());
         }
+
+        if(!MeetingInfo.isEmpty(cached.getFontColor()))
+            cellHolder.mTextView.setTextColor(Color.parseColor(cached.getFontColor()));
 
         String textMessage = cached.getText();
         MeetingParts parts = new MeetingParts(message);
@@ -197,13 +205,16 @@ public class MeetingCreatedCellFactory extends AtlasCellFactory<TextCellFactory.
         private final String text;
         private final String meetingId;
         private final String backgroundColor;
+        private final String fontColor;
 
         MeetingInfo(@Nullable String text,
                     @Nullable String meetingId,
-                    @Nullable String backgroundColor) {
+                    @Nullable String backgroundColor,
+                    @Nullable String fontColor) {
             this.text = text;
             this.meetingId = meetingId;
             this.backgroundColor = backgroundColor;
+            this.fontColor = fontColor;
         }
 
         @Override
@@ -211,8 +222,8 @@ public class MeetingCreatedCellFactory extends AtlasCellFactory<TextCellFactory.
             int textSize = isEmpty(text) ? 0 : text.getBytes().length;
             int meetingIdSize = isEmpty(meetingId) ? 0 : meetingId.getBytes().length;
             int backgroundColorSize = isEmpty(backgroundColor) ? 0 : backgroundColor.getBytes().length;
-
-            return textSize + meetingIdSize + backgroundColorSize;
+            int fontColorSize = isEmpty(fontColor) ? 0 : fontColor.getBytes().length;
+            return textSize + meetingIdSize + backgroundColorSize + fontColorSize;
         }
 
         @Nullable
@@ -228,6 +239,11 @@ public class MeetingCreatedCellFactory extends AtlasCellFactory<TextCellFactory.
         @Nullable
         public String getBackgroundColor() {
             return backgroundColor;
+        }
+
+        @Nullable
+        public String getFontColor(){
+            return fontColor;
         }
 
         private static boolean isEmpty(@Nullable String text) {
