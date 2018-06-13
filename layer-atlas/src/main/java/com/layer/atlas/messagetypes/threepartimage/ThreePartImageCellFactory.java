@@ -294,6 +294,7 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
             info.height = infoObject.getInt("height");
             info.previewPartId = parts.getPreviewPart().getId();
             info.fullPartId = parts.getFullPart().getId();
+            info.fullPartSizeInBytes = parts.getFullPart().getSize();
             return info;
         } catch (JSONException e) {
             if (Log.isLoggable(Log.ERROR)) {
