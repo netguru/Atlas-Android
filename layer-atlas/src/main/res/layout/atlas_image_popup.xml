@@ -31,11 +31,10 @@
         android:id="@+id/image_popup_progress"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="20dp"
         android:layout_gravity="top|center_horizontal"
-        android:indeterminate="false"
-        android:visibility="gone"
-        android:max="100"
+        android:indeterminate="true"
+        android:visibility="visible"
         />
 
     <android.support.v7.widget.Toolbar

@@ -35,7 +35,7 @@ import java.util.UUID;
  * AtlasImagePopupActivity implements a ful resolution image viewer Activity.  This Activity
  * registers with the LayerClient as a LayerProgressListener to monitor progress.
  */
-public class AtlasImagePopupActivity extends AppCompatActivity implements LayerProgressListener.BackgroundThread.Weak, SubsamplingScaleImageView.OnImageEventListener {
+public class AtlasImagePopupActivity extends AppCompatActivity {
 
     private static final int WRITE_PERMISSION_REQUEST = 101;
 
@@ -195,68 +195,4 @@ public class AtlasImagePopupActivity extends AppCompatActivity implements LayerP
     private boolean checkPermission() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
     }
-
-    //==============================================================================================
-    // SubsamplingScaleImageView.OnImageEventListener: hide progress bar when full part loaded
-    //==============================================================================================
-
-    @Override
-    public void onReady() {
-
-    }
-
-    @Override
-    public void onImageLoaded() {
-        mProgressBar.hide();
-    }
-
-    @Override
-    public void onPreviewLoadError(Exception e) {
-        if (Log.isLoggable(Log.ERROR)) Log.e(e.getMessage(), e);
-        mProgressBar.hide();
-    }
-
-    @Override
-    public void onImageLoadError(Exception e) {
-        if (Log.isLoggable(Log.ERROR)) Log.e(e.getMessage(), e);
-        mProgressBar.hide();
-    }
-
-    @Override
-    public void onTileLoadError(Exception e) {
-        if (Log.isLoggable(Log.ERROR)) Log.e(e.getMessage(), e);
-        mProgressBar.hide();
-    }
-
-
-    //==============================================================================================
-    // LayerProgressListener: update progress bar while downloading
-    //==============================================================================================
-
-    @Override
-    public void onProgressStart(MessagePart messagePart, Operation operation) {
-        if (!messagePart.getId().equals(mMessagePartId)) return;
-        mProgressBar.setProgress(0);
-    }
-
-    @Override
-    public void onProgressUpdate(MessagePart messagePart, Operation operation, long bytes) {
-        if (!messagePart.getId().equals(mMessagePartId)) return;
-        double fraction = (double) bytes / (double) messagePart.getSize();
-        int progress = (int) Math.round(fraction * mProgressBar.getMax());
-        mProgressBar.setProgress(progress);
-    }
-
-    @Override
-    public void onProgressComplete(MessagePart messagePart, Operation operation) {
-        if (!messagePart.getId().equals(mMessagePartId)) return;
-        mProgressBar.setProgress(mProgressBar.getMax());
-    }
-
-    @Override
-    public void onProgressError(MessagePart messagePart, Operation operation, Throwable e) {
-        if (!messagePart.getId().equals(mMessagePartId)) return;
-        if (Log.isLoggable(Log.ERROR)) Log.e(e.getMessage(), e);
-    }
-
 }
