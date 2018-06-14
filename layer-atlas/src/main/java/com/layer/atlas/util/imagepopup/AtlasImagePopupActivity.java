@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -24,9 +25,10 @@ import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.threepartimage.ThreePartImageCellFactory;
 import com.layer.atlas.messagetypes.threepartimage.ThreePartImageUtils;
 import com.layer.atlas.util.Log;
+import com.layer.atlas.util.picasso.PicassoLayer;
 import com.layer.sdk.LayerClient;
-import com.layer.sdk.listeners.LayerProgressListener;
-import com.layer.sdk.messaging.MessagePart;
+import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
 import java.util.List;
 import java.util.UUID;
@@ -72,55 +74,45 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
         Intent intent = getIntent();
         if (intent == null) return;
         mMessagePartId = intent.getParcelableExtra("fullId");
-        Uri previewId = intent.getParcelableExtra("previewId");
-        ThreePartImageCellFactory.Info info = intent.getParcelableExtra("info");
 
-        mProgressBar.show();
-        if (previewId != null && info != null) {
-            // ThreePartImage
-            switch (info.orientation) {
-                case ThreePartImageUtils.ORIENTATION_0:
-                    mImageView.setOrientation(SubsamplingScaleImageView.ORIENTATION_0);
-                    mImageView.setImage(
-                            ImageSource.uri(mMessagePartId).dimensions(info.width, info.height),
-                            ImageSource.uri(previewId));
-                    break;
-                case ThreePartImageUtils.ORIENTATION_90:
-                    mImageView.setOrientation(SubsamplingScaleImageView.ORIENTATION_270);
-                    mImageView.setImage(
-                            ImageSource.uri(mMessagePartId).dimensions(info.height, info.width),
-                            ImageSource.uri(previewId));
-                    break;
-                case ThreePartImageUtils.ORIENTATION_180:
-                    mImageView.setOrientation(SubsamplingScaleImageView.ORIENTATION_180);
-                    mImageView.setImage(
-                            ImageSource.uri(mMessagePartId).dimensions(info.width, info.height),
-                            ImageSource.uri(previewId));
-                    break;
-                case ThreePartImageUtils.ORIENTATION_270:
-                    mImageView.setOrientation(SubsamplingScaleImageView.ORIENTATION_90);
-                    mImageView.setImage(
-                            ImageSource.uri(mMessagePartId).dimensions(info.height, info.width),
-                            ImageSource.uri(previewId));
-                    break;
+        Target target = new Target() {
+            @Override
+            public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                mImageView.setImage(ImageSource.bitmap(bitmap));
+                mProgressBar.hide();
             }
-        } else {
-            // SinglePartImage
-            mImageView.setImage(ImageSource.uri(mMessagePartId));
+
+            @Override
+            public void onBitmapFailed(Drawable errorDrawable) {
+                mProgressBar.hide();
+            }
+
+            @Override
+            public void onPrepareLoad(Drawable placeHolderDrawable) {
+                mProgressBar.show();
+            }
+        };
+
+        mImageView.setTag(target);
+        PicassoLayer.getInstance().with(this, sLayerClient).load(mMessagePartId).into(target);
+
+        ThreePartImageCellFactory.Info info = intent.getParcelableExtra("info");
+        if (info != null) {
+            mImageView.setOrientation(getImageOrientation(info));
         }
-        mImageView.setOnImageEventListener(this);
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        sLayerClient.registerProgressListener(null, this);
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        sLayerClient.unregisterProgressListener(null, this);
+    private int getImageOrientation(ThreePartImageCellFactory.Info info) {
+        switch (info.orientation) {
+            case ThreePartImageUtils.ORIENTATION_90:
+                return SubsamplingScaleImageView.ORIENTATION_270;
+            case ThreePartImageUtils.ORIENTATION_180:
+                return SubsamplingScaleImageView.ORIENTATION_180;
+            case ThreePartImageUtils.ORIENTATION_270:
+                return SubsamplingScaleImageView.ORIENTATION_90;
+            default:
+                return SubsamplingScaleImageView.ORIENTATION_0;
+        }
     }
 
     public static void init(LayerClient layerClient) {
@@ -146,6 +138,13 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
            return true;
        }
        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onDestroy() {
+        sLayerClient = null;
+        mImageView.setTag(null);
+        super.onDestroy();
     }
 
     @Override
