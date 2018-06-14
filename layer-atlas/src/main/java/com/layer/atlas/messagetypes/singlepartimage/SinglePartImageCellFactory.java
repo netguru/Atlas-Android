@@ -90,7 +90,7 @@ public class SinglePartImageCellFactory extends AtlasCellFactory<SinglePartImage
 
     @Override
     public void onClick(View v) {
-        AtlasImagePopupActivity.init(mLayerClient);
+        AtlasImagePopupActivity.init(mLayerClient, mPicasso);
         Context context = v.getContext();
         if (context == null) return;
         Intent intent = new Intent(context, AtlasImagePopupActivity.class);
