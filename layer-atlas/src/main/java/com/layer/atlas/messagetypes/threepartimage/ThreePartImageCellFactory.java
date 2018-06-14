@@ -157,7 +157,7 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
 
     @Override
     public void onClick(View v) {
-        AtlasImagePopupActivity.init(mLayerClient);
+        AtlasImagePopupActivity.init(mLayerClient, mPicasso);
         Context context = v.getContext();
         if (context == null) {
             return;

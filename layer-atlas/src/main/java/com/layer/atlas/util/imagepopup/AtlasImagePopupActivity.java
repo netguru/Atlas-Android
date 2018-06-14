@@ -25,7 +25,6 @@ import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.threepartimage.ThreePartImageCellFactory;
 import com.layer.atlas.messagetypes.threepartimage.ThreePartImageUtils;
 import com.layer.atlas.util.Log;
-import com.layer.atlas.util.picasso.PicassoLayer;
 import com.layer.sdk.LayerClient;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
@@ -34,14 +33,14 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * AtlasImagePopupActivity implements a ful resolution image viewer Activity.  This Activity
- * registers with the LayerClient as a LayerProgressListener to monitor progress.
+ * AtlasImagePopupActivity implements a ful resolution image viewer Activity.
  */
 public class AtlasImagePopupActivity extends AppCompatActivity {
 
     private static final int WRITE_PERMISSION_REQUEST = 101;
 
-    private static LayerClient sLayerClient;
+    private static LayerClient layerClient;
+    private static Picasso picasso;
 
     private SubsamplingScaleImageView mImageView;
     private ContentLoadingProgressBar mProgressBar;
@@ -94,7 +93,7 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
         };
 
         mImageView.setTag(target);
-        PicassoLayer.getInstance().with(this, sLayerClient).load(mMessagePartId).into(target);
+        picasso.load(mMessagePartId).into(target);
 
         ThreePartImageCellFactory.Info info = intent.getParcelableExtra("info");
         if (info != null) {
@@ -115,8 +114,9 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
         }
     }
 
-    public static void init(LayerClient layerClient) {
-        sLayerClient = layerClient;
+    public static void init(LayerClient layerClient, Picasso picasso) {
+        AtlasImagePopupActivity.layerClient = layerClient;
+        AtlasImagePopupActivity.picasso = picasso;
         MessagePartDecoder.init(layerClient);
         MessagePartRegionDecoder.init(layerClient);
     }
@@ -142,7 +142,9 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        sLayerClient = null;
+        picasso.cancelTag(mImageView.getTag());
+        layerClient = null;
+        picasso = null;
         mImageView.setTag(null);
         super.onDestroy();
     }
