@@ -26,8 +26,13 @@ import com.layer.atlas.messagetypes.threepartimage.ThreePartImageUtils;
 import com.layer.atlas.util.Log;
 import com.layer.atlas.util.Util;
 import com.layer.sdk.LayerClient;
+import com.layer.sdk.messaging.MessagePart;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
+
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Consumer;
 
 /**
  * AtlasImagePopupActivity implements a ful resolution image viewer Activity.
@@ -43,6 +48,7 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
     private ContentLoadingProgressBar mProgressBar;
     private Toolbar toolbar;
     private Uri mMessagePartId;
+    private CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -143,6 +149,7 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
         layerClient = null;
         picasso = null;
         mImageView.setTag(null);
+        compositeDisposable.clear();
         super.onDestroy();
     }
 
@@ -158,20 +165,29 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
     }
 
     private void saveImageToGallery() {
-        Util.saveImageMessageToGallery(this, mMessagePartId, new Util.ImageSaveListener() {
-            @Override
-            public void onComplete(String imagePath) {
-                Toast.makeText(AtlasImagePopupActivity.this,
-                        imagePath != null ? R.string.atlas_save_media_success : R.string.atlas_media_already_saved,
-                        Toast.LENGTH_SHORT).show();
-            }
+        MessagePart part = (MessagePart) layerClient.get(mMessagePartId);
 
-            @Override
-            public void onError(Throwable throwable) {
-                Toast.makeText(AtlasImagePopupActivity.this, R.string.atlas_save_media_error, Toast.LENGTH_SHORT).show();
-                Log.e(throwable.getMessage(), throwable);
-            }
-        });
+        if(compositeDisposable.isDisposed()) {
+            compositeDisposable.add(Util.saveImageMessageToGallery(part)
+                    .subscribe(new Consumer<Util.MediaResponse>() {
+                        @Override
+                        public void accept(Util.MediaResponse mediaResponse) throws Exception {
+                            Toast.makeText(AtlasImagePopupActivity.this,
+                                    mediaResponse.isAlreadyExist() ?
+                                            R.string.atlas_media_already_saved :
+                                            R.string.atlas_save_media_success,
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    }, new Consumer<Throwable>() {
+                        @Override
+                        public void accept(Throwable throwable) throws Exception {
+                            Toast.makeText(AtlasImagePopupActivity.this,
+                                    R.string.atlas_save_media_error,
+                                    Toast.LENGTH_SHORT).show();
+                            Log.e(throwable.getMessage(), throwable);
+                        }
+                    }));
+        }
     }
 
     private void requestPermission() {
