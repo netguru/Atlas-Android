@@ -17,11 +17,16 @@ package com.layer.atlas.util;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Environment;
+import android.provider.MediaStore;
 
 import com.layer.atlas.BuildConfig;
 import com.layer.atlas.R;
+import com.layer.atlas.util.imagepopup.MessagePartDecoder;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.exceptions.LayerException;
 import com.layer.sdk.listeners.LayerAuthenticationListener;
@@ -30,6 +35,13 @@ import com.layer.sdk.messaging.Identity;
 import com.layer.sdk.messaging.MessagePart;
 import com.layer.sdk.query.Queryable;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -251,6 +263,57 @@ public class Util {
         layerClient.deauthenticate();
     }
 
+    public static void saveImageMessageToGallery(Context context, Uri messagePartId, ImageSaveListener imageSaveListener) {
+        MessagePartDecoder decoderFactory = new MessagePartDecoder();
+
+        try {
+            String imageFileName = generateImageFileName(messagePartId);
+            String imageStoreDirectory = Environment.getExternalStoragePublicDirectory(
+                                                        Environment.DIRECTORY_PICTURES).getPath();
+
+            File imageFile = new File(String.format("%s/%s.jpeg",
+                    imageStoreDirectory,
+                    imageFileName));
+
+            if(imageFile.exists()) {
+                imageSaveListener.onComplete(null);
+                return;
+            }
+
+            OutputStream outputStream = new FileOutputStream(imageFile);
+            Bitmap bitmap = null;
+            try {
+                bitmap = decoderFactory.decode(context, messagePartId);
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream);
+
+                imageSaveListener.onComplete(imageFile.getAbsolutePath());
+            } finally {
+                outputStream.flush();
+                outputStream.close();
+                bitmap.recycle();
+            }
+
+        } catch (Exception e) {
+            Log.e(e.getMessage(), e);
+            imageSaveListener.onError(e);
+        }
+    }
+
+    private static String generateImageFileName(Uri messagePartId) throws NoSuchAlgorithmException {
+        MessageDigest mdEnc = MessageDigest.getInstance("MD5");
+        mdEnc.update(messagePartId.getPath().getBytes());
+        return new BigInteger(1, mdEnc.digest()).toString();
+    }
+
+    private static boolean insertImage(ContentResolver contentResolver, String path, String title) throws FileNotFoundException {
+        return MediaStore.Images.Media.insertImage(
+                contentResolver,
+                path,
+                title,
+                ""
+        ) != null;
+    }
+
     public interface ContentAvailableCallback {
         void onContentAvailable(LayerClient client, Queryable object);
 
@@ -262,5 +325,10 @@ public class Util {
         void onDeauthenticationSuccess(LayerClient client);
 
         void onDeauthenticationFailed(LayerClient client, String reason);
+    }
+
+    public interface ImageSaveListener {
+        void onComplete(String imagePath);
+        void onError(Throwable throwable);
     }
 }
