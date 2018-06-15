@@ -7,7 +7,6 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -25,12 +24,15 @@ import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.threepartimage.ThreePartImageCellFactory;
 import com.layer.atlas.messagetypes.threepartimage.ThreePartImageUtils;
 import com.layer.atlas.util.Log;
+import com.layer.atlas.util.Util;
 import com.layer.sdk.LayerClient;
+import com.layer.sdk.messaging.MessagePart;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
 
-import java.util.List;
-import java.util.UUID;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Consumer;
 
 /**
  * AtlasImagePopupActivity implements a ful resolution image viewer Activity.
@@ -46,6 +48,7 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
     private ContentLoadingProgressBar mProgressBar;
     private Toolbar toolbar;
     private Uri mMessagePartId;
+    private CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -146,6 +149,7 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
         layerClient = null;
         picasso = null;
         mImageView.setTag(null);
+        compositeDisposable.clear();
         super.onDestroy();
     }
 
@@ -161,30 +165,29 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
     }
 
     private void saveImageToGallery() {
-        String extractedID = UUID.randomUUID().toString();
-        List<String> path = mMessagePartId.getPathSegments();
-        if(path !=null && path.size()>2)
-            extractedID = path.get(path.size()-1);
-        MessagePartDecoder decoderFactory = new MessagePartDecoder();
-        Bitmap bitmap = null;
-        try {
-            bitmap = decoderFactory.decode(this, mMessagePartId);
-        } catch (Throwable ex){
-            Log.e(ex.getMessage(), ex);
-        }
-        if(insertImage(bitmap, extractedID))
-            Toast.makeText(this, R.string.atlas_save_media_success, Toast.LENGTH_SHORT).show();
-        else
-            Toast.makeText(this, R.string.atlas_save_media_error, Toast.LENGTH_SHORT).show();
-    }
+        MessagePart part = (MessagePart) layerClient.get(mMessagePartId);
 
-    private boolean insertImage(Bitmap bitmap, String title){
-        return bitmap != null && MediaStore.Images.Media.insertImage(
-                getContentResolver(),
-                bitmap,
-                title,
-                ""
-        ) != null;
+        if(compositeDisposable.isDisposed()) {
+            compositeDisposable.add(Util.saveImageMessageToGallery(part)
+                    .subscribe(new Consumer<Util.MediaResponse>() {
+                        @Override
+                        public void accept(Util.MediaResponse mediaResponse) throws Exception {
+                            Toast.makeText(AtlasImagePopupActivity.this,
+                                    mediaResponse.isAlreadyExist() ?
+                                            R.string.atlas_media_already_saved :
+                                            R.string.atlas_save_media_success,
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    }, new Consumer<Throwable>() {
+                        @Override
+                        public void accept(Throwable throwable) throws Exception {
+                            Toast.makeText(AtlasImagePopupActivity.this,
+                                    R.string.atlas_save_media_error,
+                                    Toast.LENGTH_SHORT).show();
+                            Log.e(throwable.getMessage(), throwable);
+                        }
+                    }));
+        }
     }
 
     private void requestPermission() {
