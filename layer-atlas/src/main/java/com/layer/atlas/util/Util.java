@@ -324,8 +324,8 @@ public class Util {
     }
 
     public static class MediaResponse {
-        private String imagePath;
-        private boolean isAlreadyExist;
+        private final String imagePath;
+        private final boolean isAlreadyExist;
 
         public MediaResponse(String imagePath, boolean isAlreadyExist) {
             this.imagePath = imagePath;
