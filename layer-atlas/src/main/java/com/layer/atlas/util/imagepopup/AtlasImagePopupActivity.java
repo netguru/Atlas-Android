@@ -7,7 +7,6 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -25,12 +24,10 @@ import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.threepartimage.ThreePartImageCellFactory;
 import com.layer.atlas.messagetypes.threepartimage.ThreePartImageUtils;
 import com.layer.atlas.util.Log;
+import com.layer.atlas.util.Util;
 import com.layer.sdk.LayerClient;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
-
-import java.util.List;
-import java.util.UUID;
 
 /**
  * AtlasImagePopupActivity implements a ful resolution image viewer Activity.
@@ -161,30 +158,20 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
     }
 
     private void saveImageToGallery() {
-        String extractedID = UUID.randomUUID().toString();
-        List<String> path = mMessagePartId.getPathSegments();
-        if(path !=null && path.size()>2)
-            extractedID = path.get(path.size()-1);
-        MessagePartDecoder decoderFactory = new MessagePartDecoder();
-        Bitmap bitmap = null;
-        try {
-            bitmap = decoderFactory.decode(this, mMessagePartId);
-        } catch (Throwable ex){
-            Log.e(ex.getMessage(), ex);
-        }
-        if(insertImage(bitmap, extractedID))
-            Toast.makeText(this, R.string.atlas_save_media_success, Toast.LENGTH_SHORT).show();
-        else
-            Toast.makeText(this, R.string.atlas_save_media_error, Toast.LENGTH_SHORT).show();
-    }
+        Util.saveImageMessageToGallery(this, mMessagePartId, new Util.ImageSaveListener() {
+            @Override
+            public void onComplete(String imagePath) {
+                Toast.makeText(AtlasImagePopupActivity.this,
+                        imagePath != null ? R.string.atlas_save_media_success : R.string.atlas_media_already_saved,
+                        Toast.LENGTH_SHORT).show();
+            }
 
-    private boolean insertImage(Bitmap bitmap, String title){
-        return bitmap != null && MediaStore.Images.Media.insertImage(
-                getContentResolver(),
-                bitmap,
-                title,
-                ""
-        ) != null;
+            @Override
+            public void onError(Throwable throwable) {
+                Toast.makeText(AtlasImagePopupActivity.this, R.string.atlas_save_media_error, Toast.LENGTH_SHORT).show();
+                Log.e(throwable.getMessage(), throwable);
+            }
+        });
     }
 
     private void requestPermission() {
