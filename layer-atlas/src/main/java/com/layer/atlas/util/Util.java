@@ -305,22 +305,6 @@ public class Util {
         return new BigInteger(1, mdEnc.digest()).toString();
     }
 
-    private static boolean insertImage(ContentResolver contentResolver, String path, String title) throws FileNotFoundException {
-        return MediaStore.Images.Media.insertImage(
-                contentResolver,
-                path,
-                title,
-                ""
-        ) != null;
-    }
-
-    public interface ContentAvailableCallback {
-        void onContentAvailable(LayerClient client, Queryable object);
-
-        void onContentFailed(LayerClient client, Uri objectId, String reason);
-    }
-
-
     public interface DeauthenticationCallback {
         void onDeauthenticationSuccess(LayerClient client);
 
