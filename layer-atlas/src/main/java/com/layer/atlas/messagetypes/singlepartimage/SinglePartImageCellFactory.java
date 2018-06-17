@@ -82,7 +82,7 @@ public class SinglePartImageCellFactory extends AtlasCellFactory<SinglePartImage
             }
 
             @Override
-            public void onError() {
+            public void onError(Exception ex) {
                 cellHolder.mProgressBar.hide();
             }
         });
