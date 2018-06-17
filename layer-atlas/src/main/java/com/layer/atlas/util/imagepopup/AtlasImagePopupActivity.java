@@ -85,7 +85,7 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onBitmapFailed(Drawable errorDrawable) {
+            public void onBitmapFailed(Exception ex, Drawable errorDrawable) {
                 mProgressBar.hide();
             }
 
