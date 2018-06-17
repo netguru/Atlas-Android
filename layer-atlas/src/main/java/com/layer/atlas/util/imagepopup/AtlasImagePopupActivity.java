@@ -4,9 +4,9 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -24,27 +24,31 @@ import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.threepartimage.ThreePartImageCellFactory;
 import com.layer.atlas.messagetypes.threepartimage.ThreePartImageUtils;
 import com.layer.atlas.util.Log;
+import com.layer.atlas.util.Util;
 import com.layer.sdk.LayerClient;
-import com.layer.sdk.listeners.LayerProgressListener;
 import com.layer.sdk.messaging.MessagePart;
+import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
-import java.util.List;
-import java.util.UUID;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Consumer;
 
 /**
- * AtlasImagePopupActivity implements a ful resolution image viewer Activity.  This Activity
- * registers with the LayerClient as a LayerProgressListener to monitor progress.
+ * AtlasImagePopupActivity implements a ful resolution image viewer Activity.
  */
-public class AtlasImagePopupActivity extends AppCompatActivity implements LayerProgressListener.BackgroundThread.Weak, SubsamplingScaleImageView.OnImageEventListener {
+public class AtlasImagePopupActivity extends AppCompatActivity {
 
     private static final int WRITE_PERMISSION_REQUEST = 101;
 
-    private static LayerClient sLayerClient;
+    private static LayerClient layerClient;
+    private static Picasso picasso;
 
     private SubsamplingScaleImageView mImageView;
     private ContentLoadingProgressBar mProgressBar;
     private Toolbar toolbar;
     private Uri mMessagePartId;
+    private CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,59 +76,50 @@ public class AtlasImagePopupActivity extends AppCompatActivity implements LayerP
         Intent intent = getIntent();
         if (intent == null) return;
         mMessagePartId = intent.getParcelableExtra("fullId");
-        Uri previewId = intent.getParcelableExtra("previewId");
-        ThreePartImageCellFactory.Info info = intent.getParcelableExtra("info");
 
-        mProgressBar.show();
-        if (previewId != null && info != null) {
-            // ThreePartImage
-            switch (info.orientation) {
-                case ThreePartImageUtils.ORIENTATION_0:
-                    mImageView.setOrientation(SubsamplingScaleImageView.ORIENTATION_0);
-                    mImageView.setImage(
-                            ImageSource.uri(mMessagePartId).dimensions(info.width, info.height),
-                            ImageSource.uri(previewId));
-                    break;
-                case ThreePartImageUtils.ORIENTATION_90:
-                    mImageView.setOrientation(SubsamplingScaleImageView.ORIENTATION_270);
-                    mImageView.setImage(
-                            ImageSource.uri(mMessagePartId).dimensions(info.height, info.width),
-                            ImageSource.uri(previewId));
-                    break;
-                case ThreePartImageUtils.ORIENTATION_180:
-                    mImageView.setOrientation(SubsamplingScaleImageView.ORIENTATION_180);
-                    mImageView.setImage(
-                            ImageSource.uri(mMessagePartId).dimensions(info.width, info.height),
-                            ImageSource.uri(previewId));
-                    break;
-                case ThreePartImageUtils.ORIENTATION_270:
-                    mImageView.setOrientation(SubsamplingScaleImageView.ORIENTATION_90);
-                    mImageView.setImage(
-                            ImageSource.uri(mMessagePartId).dimensions(info.height, info.width),
-                            ImageSource.uri(previewId));
-                    break;
+        Target target = new Target() {
+            @Override
+            public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                mImageView.setImage(ImageSource.bitmap(bitmap));
+                mProgressBar.hide();
             }
-        } else {
-            // SinglePartImage
-            mImageView.setImage(ImageSource.uri(mMessagePartId));
+
+            @Override
+            public void onBitmapFailed(Drawable errorDrawable) {
+                mProgressBar.hide();
+            }
+
+            @Override
+            public void onPrepareLoad(Drawable placeHolderDrawable) {
+                mProgressBar.show();
+            }
+        };
+
+        mImageView.setTag(target);
+        picasso.load(mMessagePartId).into(target);
+
+        ThreePartImageCellFactory.Info info = intent.getParcelableExtra("info");
+        if (info != null) {
+            mImageView.setOrientation(getImageOrientation(info));
         }
-        mImageView.setOnImageEventListener(this);
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        sLayerClient.registerProgressListener(null, this);
+    private int getImageOrientation(ThreePartImageCellFactory.Info info) {
+        switch (info.orientation) {
+            case ThreePartImageUtils.ORIENTATION_90:
+                return SubsamplingScaleImageView.ORIENTATION_270;
+            case ThreePartImageUtils.ORIENTATION_180:
+                return SubsamplingScaleImageView.ORIENTATION_180;
+            case ThreePartImageUtils.ORIENTATION_270:
+                return SubsamplingScaleImageView.ORIENTATION_90;
+            default:
+                return SubsamplingScaleImageView.ORIENTATION_0;
+        }
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        sLayerClient.unregisterProgressListener(null, this);
-    }
-
-    public static void init(LayerClient layerClient) {
-        sLayerClient = layerClient;
+    public static void init(LayerClient layerClient, Picasso picasso) {
+        AtlasImagePopupActivity.layerClient = layerClient;
+        AtlasImagePopupActivity.picasso = picasso;
         MessagePartDecoder.init(layerClient);
         MessagePartRegionDecoder.init(layerClient);
     }
@@ -149,6 +144,16 @@ public class AtlasImagePopupActivity extends AppCompatActivity implements LayerP
     }
 
     @Override
+    protected void onDestroy() {
+        picasso.cancelTag(mImageView.getTag());
+        layerClient = null;
+        picasso = null;
+        mImageView.setTag(null);
+        compositeDisposable.clear();
+        super.onDestroy();
+    }
+
+    @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode) {
             case WRITE_PERMISSION_REQUEST: {
@@ -160,30 +165,29 @@ public class AtlasImagePopupActivity extends AppCompatActivity implements LayerP
     }
 
     private void saveImageToGallery() {
-        String extractedID = UUID.randomUUID().toString();
-        List<String> path = mMessagePartId.getPathSegments();
-        if(path !=null && path.size()>2)
-            extractedID = path.get(path.size()-1);
-        MessagePartDecoder decoderFactory = new MessagePartDecoder();
-        Bitmap bitmap = null;
-        try {
-            bitmap = decoderFactory.decode(this, mMessagePartId);
-        } catch (Throwable ex){
-            Log.e(ex.getMessage(), ex);
-        }
-        if(insertImage(bitmap, extractedID))
-            Toast.makeText(this, R.string.atlas_save_media_success, Toast.LENGTH_SHORT).show();
-        else
-            Toast.makeText(this, R.string.atlas_save_media_error, Toast.LENGTH_SHORT).show();
-    }
+        MessagePart part = (MessagePart) layerClient.get(mMessagePartId);
 
-    private boolean insertImage(Bitmap bitmap, String title){
-        return bitmap != null && MediaStore.Images.Media.insertImage(
-                getContentResolver(),
-                bitmap,
-                title,
-                ""
-        ) != null;
+        if(compositeDisposable.isDisposed()) {
+            compositeDisposable.add(Util.saveImageMessageToGallery(part)
+                    .subscribe(new Consumer<Util.MediaResponse>() {
+                        @Override
+                        public void accept(Util.MediaResponse mediaResponse) throws Exception {
+                            Toast.makeText(AtlasImagePopupActivity.this,
+                                    mediaResponse.isAlreadyExist() ?
+                                            R.string.atlas_media_already_saved :
+                                            R.string.atlas_save_media_success,
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    }, new Consumer<Throwable>() {
+                        @Override
+                        public void accept(Throwable throwable) throws Exception {
+                            Toast.makeText(AtlasImagePopupActivity.this,
+                                    R.string.atlas_save_media_error,
+                                    Toast.LENGTH_SHORT).show();
+                            Log.e(throwable.getMessage(), throwable);
+                        }
+                    }));
+        }
     }
 
     private void requestPermission() {
@@ -195,68 +199,4 @@ public class AtlasImagePopupActivity extends AppCompatActivity implements LayerP
     private boolean checkPermission() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
     }
-
-    //==============================================================================================
-    // SubsamplingScaleImageView.OnImageEventListener: hide progress bar when full part loaded
-    //==============================================================================================
-
-    @Override
-    public void onReady() {
-
-    }
-
-    @Override
-    public void onImageLoaded() {
-        mProgressBar.hide();
-    }
-
-    @Override
-    public void onPreviewLoadError(Exception e) {
-        if (Log.isLoggable(Log.ERROR)) Log.e(e.getMessage(), e);
-        mProgressBar.hide();
-    }
-
-    @Override
-    public void onImageLoadError(Exception e) {
-        if (Log.isLoggable(Log.ERROR)) Log.e(e.getMessage(), e);
-        mProgressBar.hide();
-    }
-
-    @Override
-    public void onTileLoadError(Exception e) {
-        if (Log.isLoggable(Log.ERROR)) Log.e(e.getMessage(), e);
-        mProgressBar.hide();
-    }
-
-
-    //==============================================================================================
-    // LayerProgressListener: update progress bar while downloading
-    //==============================================================================================
-
-    @Override
-    public void onProgressStart(MessagePart messagePart, Operation operation) {
-        if (!messagePart.getId().equals(mMessagePartId)) return;
-        mProgressBar.setProgress(0);
-    }
-
-    @Override
-    public void onProgressUpdate(MessagePart messagePart, Operation operation, long bytes) {
-        if (!messagePart.getId().equals(mMessagePartId)) return;
-        double fraction = (double) bytes / (double) messagePart.getSize();
-        int progress = (int) Math.round(fraction * mProgressBar.getMax());
-        mProgressBar.setProgress(progress);
-    }
-
-    @Override
-    public void onProgressComplete(MessagePart messagePart, Operation operation) {
-        if (!messagePart.getId().equals(mMessagePartId)) return;
-        mProgressBar.setProgress(mProgressBar.getMax());
-    }
-
-    @Override
-    public void onProgressError(MessagePart messagePart, Operation operation, Throwable e) {
-        if (!messagePart.getId().equals(mMessagePartId)) return;
-        if (Log.isLoggable(Log.ERROR)) Log.e(e.getMessage(), e);
-    }
-
 }

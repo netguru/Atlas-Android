@@ -17,11 +17,17 @@ package com.layer.atlas.util;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Environment;
+import android.provider.MediaStore;
 
 import com.layer.atlas.BuildConfig;
 import com.layer.atlas.R;
+import com.layer.atlas.util.imagepopup.MessagePartDecoder;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.exceptions.LayerException;
 import com.layer.sdk.listeners.LayerAuthenticationListener;
@@ -30,6 +36,13 @@ import com.layer.sdk.messaging.Identity;
 import com.layer.sdk.messaging.MessagePart;
 import com.layer.sdk.query.Queryable;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -41,6 +54,13 @@ import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import io.reactivex.Scheduler;
+import io.reactivex.Single;
+import io.reactivex.SingleEmitter;
+import io.reactivex.SingleOnSubscribe;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 
 public class Util {
     private static final int TIME_HOURS_24 = 24 * 60 * 60 * 1000;
@@ -251,16 +271,77 @@ public class Util {
         layerClient.deauthenticate();
     }
 
-    public interface ContentAvailableCallback {
-        void onContentAvailable(LayerClient client, Queryable object);
+    public static Single<MediaResponse> saveImageMessageToGallery(final MessagePart messagePart) {
+        return Single.create(new SingleOnSubscribe<MediaResponse>() {
+            @Override
+            public void subscribe(SingleEmitter<MediaResponse> emitter) throws Exception {
+                try {
+                    String imageFileName = generateImageFileName(messagePart.getId());
+                    String imageStoreDirectory = Environment.getExternalStoragePublicDirectory(
+                            Environment.DIRECTORY_PICTURES).getPath();
 
-        void onContentFailed(LayerClient client, Uri objectId, String reason);
+                    File imageFile = new File(String.format("%s/%s.jpeg",
+                            imageStoreDirectory,
+                            imageFileName));
+
+                    if(imageFile.exists()) {
+                        emitter.onSuccess(new MediaResponse(imageFile.getPath()));
+                        return;
+                    }
+
+                    OutputStream outputStream = new FileOutputStream(imageFile);
+                    Bitmap bitmap = null;
+                    try {
+                        bitmap = BitmapFactory.decodeStream(messagePart.getDataStream());
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream);
+
+                        emitter.onSuccess(new MediaResponse(imageFile.getPath(), false));
+                    } finally {
+                        outputStream.flush();
+                        outputStream.close();
+                        bitmap.recycle();
+                    }
+
+                } catch (Exception e) {
+                    Log.e(e.getMessage(), e);
+                    emitter.onError(e);
+                }
+            }
+        }).subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread());
     }
 
+    private static String generateImageFileName(Uri messagePartId) throws NoSuchAlgorithmException {
+        MessageDigest mdEnc = MessageDigest.getInstance("MD5");
+        mdEnc.update(messagePartId.getPath().getBytes());
+        return new BigInteger(1, mdEnc.digest()).toString();
+    }
 
     public interface DeauthenticationCallback {
         void onDeauthenticationSuccess(LayerClient client);
 
         void onDeauthenticationFailed(LayerClient client, String reason);
+    }
+
+    public static class MediaResponse {
+        private final String imagePath;
+        private final boolean isAlreadyExist;
+
+        public MediaResponse(String imagePath, boolean isAlreadyExist) {
+            this.imagePath = imagePath;
+            this.isAlreadyExist = isAlreadyExist;
+        }
+
+        public MediaResponse(String imagePath) {
+            this(imagePath, true);
+        }
+
+        public String getImagePath() {
+            return imagePath;
+        }
+
+        public boolean isAlreadyExist() {
+            return isAlreadyExist;
+        }
     }
 }

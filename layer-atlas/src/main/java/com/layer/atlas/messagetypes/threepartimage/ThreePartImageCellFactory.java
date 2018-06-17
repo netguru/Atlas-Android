@@ -157,7 +157,7 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
 
     @Override
     public void onClick(View v) {
-        AtlasImagePopupActivity.init(mLayerClient);
+        AtlasImagePopupActivity.init(mLayerClient, mPicasso);
         Context context = v.getContext();
         if (context == null) {
             return;
@@ -294,6 +294,7 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
             info.height = infoObject.getInt("height");
             info.previewPartId = parts.getPreviewPart().getId();
             info.fullPartId = parts.getFullPart().getId();
+            info.fullPartSizeInBytes = parts.getFullPart().getSize();
             return info;
         } catch (JSONException e) {
             if (Log.isLoggable(Log.ERROR)) {
