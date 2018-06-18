@@ -23,4 +23,6 @@ public interface ChatParticipantProvider {
      * @return A Single with Map of all matching Participants keyed by ID.
      */
     Single<Map<String, Participant>> getMatchingParticipants(@NonNull String filter);
+
+    Single<List<Participant>> findParticipantsFromSameCompany(List<String> participantsIds);
 }

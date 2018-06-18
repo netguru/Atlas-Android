@@ -217,6 +217,30 @@ public class AtlasAddressBar extends LinearLayout {
         return new LinkedHashSet<>(mSelectedParticipants);
     }
 
+    public int getListTextSize() {
+        return mListTextSize;
+    }
+
+    public int getListTextColor() {
+        return mListTextColor;
+    }
+
+    public Typeface getListTextTypeface() {
+        return mListTextTypeface;
+    }
+
+    public int getListTextStyle() {
+        return mListTextStyle;
+    }
+
+    public AvatarStyle getAvatarStyle() {
+        return mAvatarStyle;
+    }
+
+    public EmptyDelEditText getFilter() {
+        return mFilter;
+    }
+
     public AtlasAddressBar refresh() {
         return refresh(null);
     }
@@ -264,7 +288,7 @@ public class AtlasAddressBar extends LinearLayout {
         return this;
     }
 
-    private void selectParticipant(Participant participant, boolean skipRefresh) {
+    public void selectParticipant(Participant participant, boolean skipRefresh) {
         if (mSelectedParticipants.contains(participant)) {
             return;
         }
