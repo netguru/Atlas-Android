@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -177,6 +178,8 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
                                             R.string.atlas_media_already_saved :
                                             R.string.atlas_save_media_success,
                                     Toast.LENGTH_SHORT).show();
+
+                            updateGallery(mediaResponse);
                         }
                     }, new Consumer<Throwable>() {
                         @Override
@@ -188,6 +191,11 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
                         }
                     });
         }
+    }
+
+    private void updateGallery(Util.MediaResponse mediaResponse) {
+        getContentResolver().insert(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, mediaResponse.getContentValues());
     }
 
     private void requestPermission() {
