@@ -30,8 +30,8 @@ import com.layer.sdk.messaging.MessagePart;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
 
-import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.disposables.Disposables;
 import io.reactivex.functions.Consumer;
 
 /**
@@ -48,7 +48,7 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
     private ContentLoadingProgressBar mProgressBar;
     private Toolbar toolbar;
     private Uri mMessagePartId;
-    private CompositeDisposable compositeDisposable = new CompositeDisposable();
+    private Disposable disposable = Disposables.disposed();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -149,7 +149,7 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
         layerClient = null;
         picasso = null;
         mImageView.setTag(null);
-        compositeDisposable.clear();
+        disposable.dispose();
         super.onDestroy();
     }
 
@@ -167,8 +167,8 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
     private void saveImageToGallery() {
         MessagePart part = (MessagePart) layerClient.get(mMessagePartId);
 
-        if(compositeDisposable.isDisposed()) {
-            compositeDisposable.add(Util.saveImageMessageToGallery(part)
+        if(disposable.isDisposed()) {
+            disposable = Util.saveImageMessageToGallery(part)
                     .subscribe(new Consumer<Util.MediaResponse>() {
                         @Override
                         public void accept(Util.MediaResponse mediaResponse) throws Exception {
@@ -186,7 +186,7 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
                                     Toast.LENGTH_SHORT).show();
                             Log.e(throwable.getMessage(), throwable);
                         }
-                    }));
+                    });
         }
     }
 

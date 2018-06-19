@@ -277,11 +277,15 @@ public class Util {
             public void subscribe(SingleEmitter<MediaResponse> emitter) throws Exception {
                 try {
                     String imageFileName = generateImageFileName(messagePart.getId());
-                    String imageStoreDirectory = Environment.getExternalStoragePublicDirectory(
-                            Environment.DIRECTORY_PICTURES).getPath();
+                    File albumDirectory = Environment.getExternalStoragePublicDirectory(
+                            Environment.DIRECTORY_PICTURES);
+
+                    if(!albumDirectory.exists()) {
+                        albumDirectory.mkdir();
+                    }
 
                     File imageFile = new File(String.format("%s/%s.jpeg",
-                            imageStoreDirectory,
+                            albumDirectory.getPath(),
                             imageFileName));
 
                     if(imageFile.exists()) {
