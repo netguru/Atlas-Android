@@ -17,7 +17,7 @@ package com.layer.atlas.util;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
-import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -27,17 +27,14 @@ import android.provider.MediaStore;
 
 import com.layer.atlas.BuildConfig;
 import com.layer.atlas.R;
-import com.layer.atlas.util.imagepopup.MessagePartDecoder;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.exceptions.LayerException;
 import com.layer.sdk.listeners.LayerAuthenticationListener;
 import com.layer.sdk.listeners.LayerProgressListener;
 import com.layer.sdk.messaging.Identity;
 import com.layer.sdk.messaging.MessagePart;
-import com.layer.sdk.query.Queryable;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.math.BigInteger;
@@ -55,7 +52,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.reactivex.Scheduler;
 import io.reactivex.Single;
 import io.reactivex.SingleEmitter;
 import io.reactivex.SingleOnSubscribe;
@@ -65,6 +61,8 @@ import io.reactivex.schedulers.Schedulers;
 public class Util {
     private static final int TIME_HOURS_24 = 24 * 60 * 60 * 1000;
     private static final SimpleDateFormat DAY_OF_WEEK = new SimpleDateFormat("EEE, LLL dd,", Locale.getDefault());
+
+    public static final String MESSAGES_DIRECTORY = "Messages";
 
     /**
      * Returns the app version name.
@@ -277,8 +275,8 @@ public class Util {
             public void subscribe(SingleEmitter<MediaResponse> emitter) throws Exception {
                 try {
                     String imageFileName = generateImageFileName(messagePart.getId());
-                    File albumDirectory = Environment.getExternalStoragePublicDirectory(
-                            Environment.DIRECTORY_PICTURES);
+                    File albumDirectory = new File(Environment.getExternalStoragePublicDirectory(
+                            Environment.DIRECTORY_PICTURES), MESSAGES_DIRECTORY);
 
                     if(!albumDirectory.exists()) {
                         albumDirectory.mkdir();
@@ -346,6 +344,25 @@ public class Util {
 
         public boolean isAlreadyExist() {
             return isAlreadyExist;
+        }
+
+        public ContentValues getContentValues() {
+            File imageFile = new File(imagePath);
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(MediaStore.Images.Media.TITLE, imageFile.getName());
+            contentValues.put(MediaStore.Images.Media.DISPLAY_NAME, imageFile.getName());
+            contentValues.put(MediaStore.Images.Media.DESCRIPTION, imageFile.getAbsolutePath());
+            contentValues.put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis());
+            contentValues.put(MediaStore.Images.Media.MIME_TYPE, "image/jpg");
+            File parent = imageFile.getParentFile();
+            contentValues.put(MediaStore.Images.ImageColumns.BUCKET_ID, parent.toString()
+                    .toLowerCase().hashCode());
+            contentValues.put(MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME, parent.getName()
+                    .toLowerCase());
+            contentValues.put(MediaStore.Images.Media.SIZE, imageFile.length());
+            contentValues.put(MediaStore.Images.Media.DATA, imageFile.getAbsolutePath());
+
+            return contentValues;
         }
     }
 }
