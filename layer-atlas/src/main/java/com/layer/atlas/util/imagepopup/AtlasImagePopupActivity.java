@@ -30,11 +30,9 @@ import com.layer.sdk.messaging.MessagePart;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
 
-import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.disposables.Disposables;
 import io.reactivex.functions.Consumer;
-import io.reactivex.internal.disposables.DisposableHelper;
 
 /**
  * AtlasImagePopupActivity implements a ful resolution image viewer Activity.
