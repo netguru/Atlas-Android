@@ -45,9 +45,8 @@ public class MessagePartRequestHandler extends com.squareup.picasso.RequestHandl
         Queryable queryable = mLayerClient.get(request.uri);
         if (!(queryable instanceof MessagePart)) return null;
         MessagePart part = (MessagePart) queryable;
-        Source source = Okio.source(part.getDataStream());
-        if (part.isContentReady()) return new Result(source, LoadedFrom.DISK);
+        if (part.isContentReady()) return new Result(Okio.source(part.getDataStream()), LoadedFrom.DISK);
         if (!Util.downloadMessagePart(mLayerClient, part, 3, TimeUnit.MINUTES)) return null;
-        return new Result(source, LoadedFrom.NETWORK);
+        return new Result(Okio.source(part.getDataStream()), LoadedFrom.NETWORK);
     }
 }
