@@ -162,14 +162,8 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
         if (context == null) {
             return;
         }
-        Info info = (Info) v.getTag();
-        MessagePart fullMessagePart = (MessagePart) mLayerClient.get(info.fullPartId);
-        if (fullMessagePart != null && (fullMessagePart.getTransferStatus() == COMPLETE ||
-                fullMessagePart.getTransferStatus() == DOWNLOADING)) {
-            showImagePopup(context, info, v);
-        } else {
-            showImageSizeDialog(context, info, v);
-        }
+
+        showImagePopup(context, (Info) v.getTag(), v);
     }
 
     @Override
@@ -196,45 +190,6 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
         }
 
         return mTransform;
-    }
-
-    private void showImageSizeDialog(Context context, Info info, View v) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        showImageSizeDialog(context, builder, info, v);
-    }
-
-    private void showImageSizeDialog(final Context context, AlertDialog.Builder builder, final Info info, final View v) {
-        if (dialogWeakReference != null && dialogWeakReference.get() != null) {
-            return;
-        }
-        builder.setTitle(R.string.atlas_three_part_image_size_dialog_title);
-        builder.setMessage(context.getResources().getString(
-                R.string.atlas_three_part_image_size_dialog_message,
-                Formatter.formatShortFileSize(context,
-                        info.fullPartSizeInBytes)));
-        builder.setCancelable(true);
-        builder.setPositiveButton(R.string.atlas_three_part_image_size_dialog_positive,
-                new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        showImagePopup(context, info, v);
-                    }
-                });
-        builder.setNegativeButton(R.string.atlas_three_part_image_size_dialog_negative,
-                new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        //Empty
-                    }
-                });
-        builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
-            @Override
-            public void onDismiss(DialogInterface dialogInterface) {
-                dialogWeakReference.clear();
-            }
-        });
-
-        dialogWeakReference = new WeakReference<>(builder.show());
     }
 
     private void showImagePopup(Context context, Info info, View v) {
@@ -332,6 +287,7 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
             dest.writeInt(orientation);
             dest.writeInt(width);
             dest.writeInt(height);
+            dest.writeLong(fullPartSizeInBytes);
         }
 
         public static final Parcelable.Creator<Info> CREATOR
@@ -341,6 +297,8 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
                 info.orientation = in.readInt();
                 info.width = in.readInt();
                 info.height = in.readInt();
+                info.fullPartSizeInBytes = in.readLong();
+
                 return info;
             }
 
