@@ -3,7 +3,6 @@ package com.layer.atlas.messagetypes.threepartimage;
 import android.app.Activity;
 import android.app.ActivityOptions;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -14,7 +13,6 @@ import android.support.annotation.NonNull;
 import android.support.v4.widget.ContentLoadingProgressBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
-import android.text.format.Formatter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,9 +37,6 @@ import org.json.JSONObject;
 
 import java.lang.ref.WeakReference;
 import java.util.Set;
-
-import static com.layer.sdk.messaging.MessagePart.TransferStatus.COMPLETE;
-import static com.layer.sdk.messaging.MessagePart.TransferStatus.DOWNLOADING;
 
 /**
  * ThreePartImage handles image Messages with three parts: full image, preview image, and
