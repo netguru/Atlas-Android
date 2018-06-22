@@ -155,8 +155,6 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         picasso.cancelTag(mImageView.getTag());
-        layerClient = null;
-        picasso = null;
         mImageView.setTag(null);
         disposable.dispose();
         super.onDestroy();
