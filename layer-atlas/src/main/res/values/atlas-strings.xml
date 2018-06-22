@@ -61,7 +61,7 @@
 
     <string name="atlas_three_part_image_size_dialog_title">TO BE DOWNLOADED</string>
     <string name="atlas_three_part_image_size_dialog_message">Size: %1$s</string>
-    <string name="atlas_three_part_image_size_dialog_positive">Show</string>
+    <string name="atlas_three_part_image_size_dialog_positive">Save</string>
     <string name="atlas_three_part_image_size_dialog_negative">Cancel</string>
     <string name="atlas_location_app_not_found">App to display location not found</string>
     <string name="atlas_save_media">Save media</string>

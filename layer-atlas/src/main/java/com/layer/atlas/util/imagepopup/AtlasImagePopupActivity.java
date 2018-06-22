@@ -1,6 +1,8 @@
 package com.layer.atlas.util.imagepopup;
 
 import android.Manifest;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -13,8 +15,10 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.ContentLoadingProgressBar;
 import android.support.v7.app.ActionBar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.format.Formatter;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -30,6 +34,8 @@ import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.MessagePart;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
+
+import java.lang.ref.WeakReference;
 
 import io.reactivex.disposables.Disposable;
 import io.reactivex.disposables.Disposables;
@@ -49,7 +55,9 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
     private ContentLoadingProgressBar mProgressBar;
     private Toolbar toolbar;
     private Uri mMessagePartId;
+    private ThreePartImageCellFactory.Info info;
     private Disposable disposable = Disposables.disposed();
+    private WeakReference<AlertDialog> dialogWeakReference;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +85,7 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
         Intent intent = getIntent();
         if (intent == null) return;
         mMessagePartId = intent.getParcelableExtra("fullId");
+        info = intent.getParcelableExtra("info");
 
         Target target = new Target() {
             @Override
@@ -99,7 +108,6 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
         mImageView.setTag(target);
         picasso.load(mMessagePartId).into(target);
 
-        ThreePartImageCellFactory.Info info = intent.getParcelableExtra("info");
         if (info != null) {
             mImageView.setOrientation(getImageOrientation(info));
         }
@@ -135,7 +143,7 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
        if(item.getItemId() == R.id.action_save) {
            if(checkPermission()) {
-               saveImageToGallery();
+               showImageSizeDialog(AtlasImagePopupActivity.this);
            } else {
                requestPermission();
            }
@@ -156,13 +164,49 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case WRITE_PERMISSION_REQUEST: {
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
-                    saveImageToGallery();
-            }
+        if (requestCode == WRITE_PERMISSION_REQUEST) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                showImageSizeDialog(AtlasImagePopupActivity.this);
+        }
+    }
+
+    private void showImageSizeDialog(Context context) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        showImageSizeDialog(context, builder);
+    }
+
+    private void showImageSizeDialog(final Context context, AlertDialog.Builder builder) {
+        if (dialogWeakReference != null && dialogWeakReference.get() != null) {
             return;
         }
+        builder.setTitle(R.string.atlas_three_part_image_size_dialog_title)
+                .setMessage(context.getResources().getString(
+                        R.string.atlas_three_part_image_size_dialog_message,
+                        Formatter.formatShortFileSize(context,
+                                info.fullPartSizeInBytes)))
+                .setCancelable(true)
+                .setPositiveButton(R.string.atlas_three_part_image_size_dialog_positive,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                saveImageToGallery();
+                            }
+                        })
+                .setNegativeButton(R.string.atlas_three_part_image_size_dialog_negative,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                //Empty
+                            }
+                        })
+                .setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialogInterface) {
+                        dialogWeakReference.clear();
+                    }
+                });
+
+        dialogWeakReference = new WeakReference<>(builder.show());
     }
 
     private void saveImageToGallery() {
