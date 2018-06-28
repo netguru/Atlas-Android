@@ -59,10 +59,11 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
     private Disposable disposable = Disposables.disposed();
     private WeakReference<AlertDialog> dialogWeakReference;
 
+    private boolean isImageLoaded = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         getWindow().setBackgroundDrawableResource(R.color.atlas_image_popup_background);
         setContentView(R.layout.atlas_image_popup);
         mImageView = (SubsamplingScaleImageView) findViewById(R.id.image_popup);
@@ -90,8 +91,7 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
         Target target = new Target() {
             @Override
             public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
-                mImageView.setImage(ImageSource.bitmap(bitmap));
-                mProgressBar.hide();
+                AtlasImagePopupActivity.this.onBitmapLoaded(bitmap);
             }
 
             @Override
@@ -111,6 +111,13 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
         if (info != null) {
             mImageView.setOrientation(getImageOrientation(info));
         }
+    }
+
+    private void onBitmapLoaded(Bitmap bitmap) {
+        isImageLoaded = true;
+        mImageView.setImage(ImageSource.bitmap(bitmap));
+        invalidateOptionsMenu();
+        mProgressBar.hide();
     }
 
     private int getImageOrientation(ThreePartImageCellFactory.Info info) {
@@ -136,6 +143,8 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.atlas_image_menu, menu);
+        menu.findItem(R.id.action_save).setVisible(isImageLoaded);
+
         return true;
     }
 
