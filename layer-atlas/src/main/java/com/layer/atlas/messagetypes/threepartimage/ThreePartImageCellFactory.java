@@ -11,7 +11,6 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.v4.widget.ContentLoadingProgressBar;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -35,7 +34,6 @@ import com.squareup.picasso.Transformation;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.lang.ref.WeakReference;
 import java.util.Set;
 
 /**
@@ -52,7 +50,6 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
     private final LayerClient mLayerClient;
     private final Picasso mPicasso;
     private Transformation mTransform;
-    private WeakReference<AlertDialog> dialogWeakReference = null;
 
     public ThreePartImageCellFactory(LayerClient mLayerClient, Picasso mPicasso) {
         super(CACHE_SIZE_BYTES);
@@ -100,18 +97,18 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
         RequestCreator creator = mPicasso.load(parts.getPreviewPart().getId()).tag(PICASSO_TAG).placeholder(PLACEHOLDER);
 
         if (cellDims[0] > 0 && cellDims[1] > 0) {
+            creator.resize(cellDims[0], cellDims[1]);
             switch (info.orientation) {
                 case ThreePartImageUtils.ORIENTATION_0:
-                    creator.resize(cellDims[0], cellDims[1]);
                     break;
                 case ThreePartImageUtils.ORIENTATION_90:
-                    creator.resize(cellDims[1], cellDims[0]).rotate(-90);
+                    creator.rotate(-90);
                     break;
                 case ThreePartImageUtils.ORIENTATION_180:
-                    creator.resize(cellDims[0], cellDims[1]).rotate(180);
+                    creator.rotate(180);
                     break;
                 default:
-                    creator.resize(cellDims[1], cellDims[0]).rotate(90);
+                    creator.rotate(90);
                     break;
             }
         } else if (Log.isLoggable(Log.ERROR)) {

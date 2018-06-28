@@ -30,11 +30,7 @@ public class RoundedTransform implements Transformation {
         int width = source.getWidth();
         int height = source.getHeight();
 
-        // Gif returns null config, must handle it
-        Bitmap.Config config = source.getConfig();
-        if (config == null) config = Bitmap.Config.ARGB_8888;
-
-        Bitmap image = Bitmap.createBitmap(width, height, config);
+        Bitmap image = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(image);
         RectF rect = new RectF(0, 0, width, height);
 
