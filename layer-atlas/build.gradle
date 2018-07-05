@@ -79,6 +79,9 @@ dependencies {
     androidTestImplementation('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
+
+    // Bugfender
+    implementation "com.bugfender.sdk:android:1.0.8"
 }
 
 def sdkPom() {

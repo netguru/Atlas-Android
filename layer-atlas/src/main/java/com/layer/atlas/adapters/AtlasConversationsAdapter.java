@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.bugfender.sdk.Bugfender;
 import com.layer.atlas.AtlasAvatar;
 import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
@@ -21,6 +22,7 @@ import com.layer.atlas.messagetypes.threepartimage.ThreePartImageCellFactory;
 import com.layer.atlas.participant.BotParticipant;
 import com.layer.atlas.participant.ChatParticipantProvider;
 import com.layer.atlas.participant.Participant;
+import com.layer.atlas.util.AtlasBugfenderLogger;
 import com.layer.atlas.util.ConversationFormatter;
 import com.layer.atlas.util.ConversationStyle;
 import com.layer.atlas.util.IdentityRecyclerViewEventListener;
@@ -30,6 +32,7 @@ import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Conversation;
 import com.layer.sdk.messaging.Identity;
 import com.layer.sdk.messaging.Message;
+import com.layer.sdk.messaging.MessagePart;
 import com.layer.sdk.query.CompoundPredicate;
 import com.layer.sdk.query.Predicate;
 import com.layer.sdk.query.Query;
@@ -257,6 +260,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             viewHolder.mMessageView.setText(this.getLastMessageString(context, lastMessage));
             if (lastMessage.getReceivedAt() == null) {
                 viewHolder.mTimeView.setText(null);
+                AtlasBugfenderLogger.log("message is not received, handle this case?");
             } else {
                 viewHolder.mTimeView.setText(Util.formatTime(context, lastMessage.getReceivedAt(), mTimeFormat, mDateFormat));
             }
@@ -443,6 +447,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             }
         }
 
+        AtlasBugfenderLogger.log(String.format("Message mime type unknown: %s", GenericCellFactory.getPreview(context, message)));
         return GenericCellFactory.getPreview(context, message);
     }
 

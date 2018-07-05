@@ -1,5 +1,8 @@
 package com.layer.atlas.util;
 
+import com.bugfender.sdk.Bugfender;
+import com.bugfender.sdk.LogLevel;
+
 /**
  * Unified Log class used by Atlas classes that maintains similar signatures to `android.util.Log`.
  * Logs are tagged with `Atlas`.
