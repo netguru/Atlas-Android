@@ -9,7 +9,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.bugfender.sdk.Bugfender;
 import com.layer.atlas.AtlasAvatar;
 import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
@@ -32,7 +31,6 @@ import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Conversation;
 import com.layer.sdk.messaging.Identity;
 import com.layer.sdk.messaging.Message;
-import com.layer.sdk.messaging.MessagePart;
 import com.layer.sdk.query.CompoundPredicate;
 import com.layer.sdk.query.Predicate;
 import com.layer.sdk.query.Query;
@@ -108,7 +106,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             @Override
             public void onClick(ViewHolder viewHolder) {
                 if (mConversationClickListener == null) return;
-
+                
                 if (Log.isPerfLoggable()) {
                     Log.perf("Conversation ViewHolder onClick");
                 }
