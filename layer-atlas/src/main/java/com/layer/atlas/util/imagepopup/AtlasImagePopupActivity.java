@@ -106,7 +106,8 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
         };
 
         mImageView.setTag(target);
-        picasso.load(mMessagePartId).into(target);
+        if (picasso != null)
+            picasso.load(mMessagePartId).into(target);
 
         if (info != null) {
             mImageView.setOrientation(getImageOrientation(info));
@@ -150,15 +151,15 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-       if(item.getItemId() == R.id.action_save) {
-           if(checkPermission()) {
-               showImageSizeDialog(AtlasImagePopupActivity.this);
-           } else {
-               requestPermission();
-           }
-           return true;
-       }
-       return super.onOptionsItemSelected(item);
+        if (item.getItemId() == R.id.action_save) {
+            if (checkPermission()) {
+                showImageSizeDialog(AtlasImagePopupActivity.this);
+            } else {
+                requestPermission();
+            }
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -219,7 +220,7 @@ public class AtlasImagePopupActivity extends AppCompatActivity {
     private void saveImageToGallery() {
         MessagePart part = (MessagePart) layerClient.get(mMessagePartId);
 
-        if(disposable.isDisposed()) {
+        if (disposable.isDisposed()) {
             disposable = Util.saveImageMessageToGallery(part)
                     .subscribe(new Consumer<Util.MediaResponse>() {
                         @Override
