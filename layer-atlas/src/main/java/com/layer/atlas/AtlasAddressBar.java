@@ -75,6 +75,8 @@ public class AtlasAddressBar extends LinearLayout {
     private AvailableConversationAdapter mAvailableConversationAdapter;
     private final Set<Participant> mSelectedParticipants = new LinkedHashSet<>();
 
+    private TextWatcher mTextWatcher;
+
     private boolean mShowConversations;
 
     // styles
@@ -164,8 +166,15 @@ public class AtlasAddressBar extends LinearLayout {
         }
     }
 
-    public AtlasAddressBar addTextChangedListener(TextWatcher textWatcher) {
+    public AtlasAddressBar addTextChangedListener(TextWatcher textWatcher){
+        return addTextChangedListener(textWatcher, true);
+    }
+
+    public AtlasAddressBar addTextChangedListener(TextWatcher textWatcher, boolean forceOne) {
+        if(mTextWatcher!=null && forceOne)
+            removeTextChangedListener(mTextWatcher);
         mFilter.addTextChangedListener(textWatcher);
+        this.mTextWatcher = textWatcher;
         return this;
     }
 
