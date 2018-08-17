@@ -21,7 +21,6 @@ import com.layer.atlas.messagetypes.threepartimage.ThreePartImageCellFactory;
 import com.layer.atlas.participant.BotParticipant;
 import com.layer.atlas.participant.ChatParticipantProvider;
 import com.layer.atlas.participant.Participant;
-import com.layer.atlas.util.AtlasBugfenderLogger;
 import com.layer.atlas.util.ConversationFormatter;
 import com.layer.atlas.util.ConversationStyle;
 import com.layer.atlas.util.IdentityRecyclerViewEventListener;
@@ -258,7 +257,6 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             viewHolder.mMessageView.setText(this.getLastMessageString(context, lastMessage));
             if (lastMessage.getReceivedAt() == null) {
                 viewHolder.mTimeView.setText(null);
-                AtlasBugfenderLogger.log("message is not received, handle this case?");
             } else {
                 viewHolder.mTimeView.setText(Util.formatTime(context, lastMessage.getReceivedAt(), mTimeFormat, mDateFormat));
             }
@@ -445,7 +443,6 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             }
         }
 
-        AtlasBugfenderLogger.log(String.format("Message mime type unknown: %s", GenericCellFactory.getPreview(context, message)));
         return GenericCellFactory.getPreview(context, message);
     }
 
