@@ -2,7 +2,6 @@ package com.layer.atlas.messagetypes;
 
 import android.content.Context;
 
-import com.layer.atlas.util.AtlasBugfenderLogger;
 import com.layer.atlas.util.Log;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Conversation;
@@ -67,7 +66,6 @@ public abstract class MessageSender {
             if (Log.isLoggable(Log.VERBOSE)) Log.v("Message sent by " + getClass().getSimpleName());
             return true;
         }
-        AtlasBugfenderLogger.log("Message failed to sent");
         if (Log.isLoggable(Log.VERBOSE)) {
             Log.v("Message sending aborted by " + getClass().getSimpleName());
         }
